@@ -340,14 +340,9 @@ web-based-ml-model-evaluator/
 │   └── README.md
 │
 ├── docs/
-│   ├── SRS/
-│   │   └── SRS.pdf
-│   │
-│   ├── SAD/
-│   │   └── SAD.pdf
-│   │
-│   └── Test-Plan/
-│       └── Test_Plan.pdf
+│   ├── Team-14_SAD_Web_Based_ML_Model_Evaluator.pdf
+│   ├── Team-14_SRS_Web_Based_ML_Model_Evaluator.pdf
+│   └── Team-14_Test_Plan_Web_Based_ML_Model_Evaluator.pdf
 │
 ├── test-data/
 │   ├── D1-iris.csv
@@ -636,7 +631,7 @@ The repository contains the following project documents:
 Contains the functional and non-functional requirements of the Web Based ML Model Evaluator.
 
 ```text
-docs/SRS/SRS.pdf
+docs/Team-14_SRS_Web_Based_ML_Model_Evaluator.pdf
 ```
 
 ### Software Architecture / Design Specification
@@ -644,7 +639,7 @@ docs/SRS/SRS.pdf
 Contains the system architecture, components, interfaces, design decisions, and architectural constraints.
 
 ```text
-docs/SAD/SAD.pdf
+docs/Team-14_SAD_Web_Based_ML_Model_Evaluator.pdf
 ```
 
 ### Software Test Plan
@@ -652,7 +647,7 @@ docs/SAD/SAD.pdf
 Contains the testing strategy, test environment, test data, test cases, requirements traceability, defect management, and security testing.
 
 ```text
-docs/Test-Plan/Test_Plan.pdf
+docs/Team-14_Test_Plan_Web_Based_ML_Model_Evaluator.pdf
 ```
 
 ---
