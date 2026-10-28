@@ -1,6 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
-
 class RegisterIn(BaseModel):
     username: str = Field(
         min_length=3,
@@ -34,3 +33,7 @@ class RegisterIn(BaseModel):
             )
 
         return value
+
+class LoginIn(BaseModel):
+    identifier: str = Field(min_length=1)
+    password: str = Field(min_length=1)
