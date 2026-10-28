@@ -1,29 +1,27 @@
 name: CI
 
-on:
-  push:
-    branches:
-      - main
-      - "chore/**"
-      - "feature/**"
-      - "fix/**"
-  pull_request:
-    branches:
-      - main
+on: [push, pull_request]
 
 permissions:
   contents: read
 
 jobs:
-  repository-check:
-    name: Validate repository files
+  test:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify required project files
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test tools
         run: |
-          test -f README.md
-          test -d docs
-          echo "Repository structure check passed."
+          python -m pip install --upgrade pip
+          python -m pip install pytest pytest-cov
+
+      - name: Run tests
+        run: python -m pytest --cov
