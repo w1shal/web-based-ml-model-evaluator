@@ -46,3 +46,19 @@ class User(Base):
         server_default=func.now(),
         nullable=False,
     )
+
+class RevokedToken(Base):
+    """Store identifiers of JWTs invalidated before expiration."""
+
+    __tablename__ = "revoked_tokens"
+
+    jti: Mapped[str] = mapped_column(
+        String(64),
+        primary_key=True,
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        index=True,
+    )
