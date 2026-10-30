@@ -1,0 +1,39 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+
+# Local database
+evaluator.db
+*.db-journal
+
+# Frontend dependencies and build output
+node_modules/
+frontend/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Editor and operating system files
+.vscode/
+.DS_Store
+# Python cache files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Local database
+evaluator.db
+*.db
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Environment files
+.env
+.env.*
+!.env.example
