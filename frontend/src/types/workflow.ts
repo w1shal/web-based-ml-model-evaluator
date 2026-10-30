@@ -27,3 +27,18 @@ export const WORKFLOW_STEPS: {
   { id: "evaluate", number: 3, title: "Evaluate", description: "Run your evaluation" },
   { id: "results", number: 4, title: "Results", description: "Review model performance" },
 ];
+export interface AlgorithmResult {
+  algorithm: string;
+  accuracy: number | null;
+  precision: number | null;
+  recall: number | null;
+  f1_score: number | null;
+  roc_auc?: number | null;
+  confusion_matrix?: number[][];
+}
+
+export interface EvaluationResponse {
+  run_id: string;
+  status: string;
+  results: AlgorithmResult[];
+}
