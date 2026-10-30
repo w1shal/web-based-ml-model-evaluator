@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-multipart
+pandas
+numpy
+scikit-learn
+pytest
+httpx
