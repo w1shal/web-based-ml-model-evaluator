@@ -7,6 +7,7 @@ import EvaluatePage from "./pages/EvaluatePage";
 import ResultsPage from "./pages/ResultsPage";
 import type {
   EvaluationConfig,
+  EvaluationResponse,
   UploadedDataset,
   WorkflowStep,
 } from "./types/workflow";
@@ -19,6 +20,8 @@ export default function App() {
   useState<UploadedDataset | null>(null);
  const [evaluationConfig, setEvaluationConfig] =
   useState<EvaluationConfig | null>(null);
+ const [evaluationResponse] =
+  useState<EvaluationResponse | null>(null);
 
 const pageContent: Record<
   WorkflowStep,
@@ -44,9 +47,9 @@ const pageContent: Record<
     component: <EvaluatePage config={evaluationConfig} />,
   },
   results: {
-    title: "Evaluation results",
-    component: <ResultsPage />,
-  },
+  title: "Evaluation results",
+  component: <ResultsPage data={evaluationResponse} />,
+},
 };
 
 
