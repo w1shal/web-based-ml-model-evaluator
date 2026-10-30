@@ -1,4 +1,5 @@
-﻿from contextlib import asynccontextmanager
+﻿
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -7,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .db import engine
 from .models import Base
-from .routers import auth
+from .routers import auth, history
 
 
 @asynccontextmanager
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(history.router)
 
 
 @app.exception_handler(RequestValidationError)

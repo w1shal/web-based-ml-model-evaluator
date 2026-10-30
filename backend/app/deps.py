@@ -1,8 +1,8 @@
 
-"""Shared authentication dependencies for protected API routes."""
+"""Shared authentication dependencies for protected and guest-capable routes."""
 
 import jwt
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
@@ -10,91 +10,75 @@ from .db import get_db
 from .models import RevokedToken, User
 from .security import decode_access_token
 
-
 bearer = HTTPBearer(auto_error=False)
 
 
-def _resolve_token(
-    credentials: HTTPAuthorizationCredentials,
+def _unauthorized(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=401,
+        detail=detail,
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _resolve(
+    creds: HTTPAuthorizationCredentials,
     db: Session,
-) -> tuple[User, dict]:
-    """Validate a JWT, reject revoked tokens, and resolve its user."""
-
+) -> User:
+    """Resolve a valid, unexpired, non-revoked token to an existing user."""
     try:
-        claims = decode_access_token(credentials.credentials)
+        payload = decode_access_token(creds.credentials)
+        subject = payload["sub"]
+        token_id = payload["jti"]
 
-        user_id = int(claims["sub"])
-        jti = claims["jti"]
+        if not isinstance(subject, str) or not subject.isdecimal():
+            raise ValueError("Invalid token subject")
 
-        if not isinstance(jti, str) or not jti:
+        user_id = int(subject)
+
+        if user_id <= 0:
+            raise ValueError("Invalid token subject")
+
+        if (
+            not isinstance(token_id, str)
+            or not token_id
+            or len(token_id) > 64
+        ):
             raise ValueError("Invalid token identifier")
 
-    except (jwt.PyJWTError, KeyError, TypeError, ValueError):
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from None
+    except (
+        jwt.PyJWTError,
+        KeyError,
+        TypeError,
+        ValueError,
+        OverflowError,
+    ):
+        raise _unauthorized("Invalid or expired token") from None
 
-    # A validly signed JWT must still be rejected if it was revoked.
-    if db.get(RevokedToken, jti) is not None:
-        raise HTTPException(
-            status_code=401,
-            detail="Token has been revoked",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+    if db.get(RevokedToken, token_id) is not None:
+        raise _unauthorized("Token has been revoked")
 
     user = db.get(User, user_id)
 
     if user is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise _unauthorized("Invalid or expired token")
 
-    return user, claims
-
-
-def get_current_auth(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    db: Session = Depends(get_db),
-) -> tuple[User, dict]:
-    """Require authentication and return the user plus verified JWT claims."""
-
-    if credentials is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    return _resolve_token(credentials, db)
+    return user
 
 
 def get_current_user(
-    auth: tuple[User, dict] = Depends(get_current_auth),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: Session = Depends(get_db),
 ) -> User:
-    """Return the authenticated user for protected endpoints."""
-    return auth[0]
+    if creds is None:
+        raise _unauthorized("Not authenticated")
+
+    return _resolve(creds, db)
 
 
 def get_optional_user(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-    authorization: str | None = Header(default=None),
+    creds: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: Session = Depends(get_db),
 ) -> User | None:
-    """Allow guests, but reject any supplied invalid or revoked token."""
-
-    if authorization is None:
-        return None
-
-    if credentials is None:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid authorization header",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    user, _ = _resolve_token(credentials, db)
-    return user
+    """Allow guests, but reject supplied invalid or revoked credentials."""
+    return _resolve(creds, db) if creds is not None else None
