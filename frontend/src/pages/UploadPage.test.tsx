@@ -42,7 +42,7 @@ describe("UploadPage", () => {
     const user = userEvent.setup();
     apiRequestMock.mockResolvedValue(successfulResponse);
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const file = new File(
       ["Name,Age,Score\nAlice,22,90"],
@@ -75,7 +75,7 @@ describe("UploadPage", () => {
 
   it("rejects files that are not CSV files", async () => {
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const file = new File(["hello"], "notes.txt", {
       type: "text/plain",
@@ -95,7 +95,7 @@ describe("UploadPage", () => {
   it("rejects files larger than 10 MB", async () => {
     const user = userEvent.setup();
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const file = new File(
       [new Uint8Array(10 * 1024 * 1024 + 1)],
@@ -119,7 +119,7 @@ describe("UploadPage", () => {
       new ApiError("Malformed CSV file", 400),
     );
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const file = new File(["invalid,csv"], "broken.csv", {
       type: "text/csv",
@@ -149,7 +149,7 @@ describe("UploadPage", () => {
       }),
     );
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const file = new File(["Name\nAlice"], "students.csv", {
       type: "text/csv",
@@ -185,7 +185,7 @@ describe("UploadPage", () => {
       .mockRejectedValueOnce(new ApiError("Server error", 500))
       .mockResolvedValueOnce(successfulResponse);
 
-    render(<UploadPage />);
+    render(<UploadPage onUploadSuccess={() => {}} />);
 
     const input = screen.getByLabelText(/dataset-file/i);
 
