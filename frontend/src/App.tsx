@@ -5,24 +5,43 @@ import UploadPage from "./pages/UploadPage";
 import ConfigurePage from "./pages/ConfigurePage";
 import EvaluatePage from "./pages/EvaluatePage";
 import ResultsPage from "./pages/ResultsPage";
-import type { WorkflowStep } from "./types/workflow";
+import type {
+  EvaluationConfig,
+  UploadedDataset,
+  WorkflowStep,
+} from "./types/workflow";
 import "./App.css";
+
+
+export default function App() {
+  const [currentStep, setCurrentStep] = useState<WorkflowStep>("upload");
+ const [uploadedDataset, setUploadedDataset] =
+  useState<UploadedDataset | null>(null);
+ const [evaluationConfig, setEvaluationConfig] =
+  useState<EvaluationConfig | null>(null);
 
 const pageContent: Record<
   WorkflowStep,
   { title: string; component: React.ReactNode }
 > = {
   upload: {
-    title: "New evaluation",
-    component: <UploadPage />,
-  },
+  title: "New evaluation",
+  component: (
+    <UploadPage onUploadSuccess={setUploadedDataset} />
+  ),
+},
   configure: {
-    title: "Configure evaluation",
-    component: <ConfigurePage />,
-  },
+  title: "Configure evaluation",
+  component: (
+    <ConfigurePage
+      dataset={uploadedDataset}
+      onConfigChange={setEvaluationConfig}
+    />
+  ),
+},
   evaluate: {
     title: "Run evaluation",
-    component: <EvaluatePage />,
+    component: <EvaluatePage config={evaluationConfig} />,
   },
   results: {
     title: "Evaluation results",
@@ -30,8 +49,7 @@ const pageContent: Record<
   },
 };
 
-export default function App() {
-  const [currentStep, setCurrentStep] = useState<WorkflowStep>("upload");
+
   const activePage = pageContent[currentStep];
 
   return (
@@ -113,9 +131,22 @@ export default function App() {
             </div>
 
             <StepNavigation
-              currentStep={currentStep}
-              onStepChange={setCurrentStep}
-            />
+  currentStep={currentStep}
+  onStepChange={(step) => {
+    if (step !== "upload" && !uploadedDataset) {
+      return;
+    }
+
+    if (
+      (step === "evaluate" || step === "results") &&
+      !evaluationConfig
+    ) {
+      return;
+    }
+
+    setCurrentStep(step);
+  }}
+/>
 
             <div className="page-divider" />
 
@@ -145,21 +176,26 @@ export default function App() {
                 </button>
 
                 <button
-                  className="button-primary"
-                  type="button"
-                  disabled={currentStep === "results"}
-                  onClick={() => {
-                    const steps: WorkflowStep[] = [
-                      "upload",
-                      "configure",
-                      "evaluate",
-                      "results",
-                    ];
-                    setCurrentStep(steps[steps.indexOf(currentStep) + 1]);
-                  }}
-                >
-                  Next step <span aria-hidden="true">→</span>
-                </button>
+  className="button-primary"
+  type="button"
+  disabled={
+    currentStep === "results" ||
+    (currentStep === "upload" && !uploadedDataset) ||
+    (currentStep === "configure" && !evaluationConfig)
+  }
+  onClick={() => {
+    const steps: WorkflowStep[] = [
+      "upload",
+      "configure",
+      "evaluate",
+      "results",
+    ];
+
+    setCurrentStep(steps[steps.indexOf(currentStep) + 1]);
+  }}
+>
+  Next step <span aria-hidden="true">→</span>
+</button>
               </div>
             </footer>
           </section>
