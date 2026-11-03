@@ -5,5 +5,8 @@ python-multipart
 pandas
 numpy
 scikit-learn
+bcrypt
+PyJWT
+pydantic[email]
 pytest
 httpx
