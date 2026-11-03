@@ -1,9 +1,10 @@
 from datetime import datetime, timedelta, timezone
+import os
 
 import jwt
 
 from app.models import AlgorithmResult, EvaluationRun
-from app.security import ALGO, SECRET, create_token
+from app.security import ALGO, create_token
 from tests.conftest import SAMPLE_RESULTS
 
 
@@ -53,7 +54,7 @@ def test_history_requires_authentication(client):                               
     assert client.delete("/history/run_x").status_code == 401
 
 
-def test_history_rejects_expired_invalid_signature_and_malformed_claims(client):                 # MLE-SEC-003
+def test_history_rejects_expired_invalid_signature_and_malformed_claims(client):
     now = datetime.now(timezone.utc)
     expired = create_token(1, minutes=-1)
 
@@ -63,17 +64,21 @@ def test_history_rejects_expired_invalid_signature_and_malformed_claims(client):
     tampered_signature = ("A" if signature[0] != "A" else "B") + signature[1:]
     invalid_signature = ".".join([parts[0], parts[1], tampered_signature])
 
-    # A correctly signed JWT missing jti must still be rejected as an invalid token (401).
+    test_secret = os.environ["JWT_SECRET"]
+
     missing_jti = jwt.encode(
         {"sub": "1", "iat": now, "exp": now + timedelta(minutes=5)},
-        SECRET,
+        test_secret,
         algorithm=ALGO,
     )
-    # A signed but non-numeric subject must not escape as a ValueError/500.
     invalid_subject = jwt.encode(
-        {"sub": "not-a-user-id", "jti": "test-jti", "iat": now,
-         "exp": now + timedelta(minutes=5)},
-        SECRET,
+        {
+            "sub": "not-a-user-id",
+            "jti": "test-jti",
+            "iat": now,
+            "exp": now + timedelta(minutes=5),
+        },
+        test_secret,
         algorithm=ALGO,
     )
 
@@ -151,7 +156,7 @@ def test_delete_guest_run_forbidden(client, make_user, make_run):
     assert client.delete(f"/history/{run_id}", headers=u["headers"]).status_code == 403
 
 
-def test_delete_twice_or_unknown_is_404(client, make_user, make_run):                         # TC-027b
+def test_delete_twice_or_unknown_is_404(client, make_user, make_run):
     u = make_user("alice")
     run_id = make_run(u["user_id"])
     assert client.delete(f"/history/{run_id}", headers=u["headers"]).status_code == 200
