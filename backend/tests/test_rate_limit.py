@@ -1,4 +1,6 @@
-from app.ratelimit import limiter
+import pytest
+
+from app.ratelimit import _positive_int_env, limiter
 from tests.conftest import GOOD
 
 
@@ -77,7 +79,8 @@ def test_forwarded_header_ignored_when_proxy_not_trusted(client, monkeypatch):
     assert codes == [401, 401, 429]
 
 
-def test_rate_limit_configuration_must_be_positive(client, monkeypatch):
-    monkeypatch.setenv("RATE_LIMIT_LOGIN_MAX", "0")
-    response = bad_login(client)
-    assert response.status_code == 500
+@pytest.mark.parametrize("raw", ["0", "-1", "invalid"])
+def test_rate_limit_configuration_must_be_positive(monkeypatch, raw):
+    monkeypatch.setenv("RATE_LIMIT_LOGIN_MAX", raw)
+    with pytest.raises(RuntimeError, match="must be a positive integer"):
+        _positive_int_env("RATE_LIMIT_LOGIN_MAX", 5)
