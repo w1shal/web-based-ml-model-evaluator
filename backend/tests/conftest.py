@@ -47,11 +47,12 @@ SAMPLE_RESULTS = [
 
 @pytest.fixture(autouse=True)
 def _clean_rate_limit_state(monkeypatch):
-    """Use generous defaults for ordinary tests and isolate limiter state."""
+    """Use generous defaults for ordinary tests and isolate process state."""
     monkeypatch.setenv("RATE_LIMIT_LOGIN_MAX", "1000")
     monkeypatch.setenv("RATE_LIMIT_REGISTER_MAX", "1000")
     monkeypatch.setenv("RATE_LIMIT_WINDOW", "60")
     monkeypatch.delenv("TRUST_PROXY", raising=False)
+    monkeypatch.delenv("ENFORCE_HTTPS", raising=False)
     limiter.reset()
     yield
     limiter.reset()
