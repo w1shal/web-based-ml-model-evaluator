@@ -43,6 +43,7 @@ jobs:
           python -m pip install -r requirements.txt
 
       - name: Run backend tests with authentication coverage gate
+        working-directory: backend
         run: |
           python -m pytest -q \
             --cov=app.routers.auth \
