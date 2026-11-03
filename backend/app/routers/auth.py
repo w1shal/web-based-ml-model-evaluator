@@ -19,24 +19,26 @@ def register(
 ):
     normalized_email = str(body.email).lower()
 
-    existing_user = db.scalar(
+@router.post(
+    "/register",
+    status_code=201,
+    dependencies=[Depends(rate_limit("register", 10))],
+)
+def register(body: RegisterIn, db: Session = Depends(get_db)):
+    email = body.email.lower()
+
+    taken = db.scalar(
         select(User).where(
-            or_(
-                User.username == body.username,
-                User.email == normalized_email,
-            )
+            or_(User.username == body.username, User.email == email)
         )
     )
 
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username or email already registered",
-        )
+    if taken:
+        raise HTTPException(409, "Username or email already registered")
 
     user = User(
         username=body.username,
-        email=normalized_email,
+        email=email,
         password_hash=hash_password(body.password),
     )
 
@@ -44,7 +46,6 @@ def register(
 
     try:
         db.commit()
-        db.refresh(user)
     except IntegrityError:
         db.rollback()
         raise HTTPException(
