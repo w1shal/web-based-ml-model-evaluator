@@ -729,3 +729,8 @@ The test plan maintains traceability between the system requirements and their c
 | PES2UG24CS578 | 14 | VEDANT SRIVASTAVA |
 | PES2UG24CS592 | 14 | VISHAL VIJAYKUMAR NIDONI |
 | PES2UG24CS599 | 14 | VIVEK R |
+
+
+## Secure Deployment (HTTPS)
+
+Production deployment uses Nginx for TLS termination, HTTP-to-HTTPS redirects, and reverse proxying to the private FastAPI service. Local HTTP development remains supported. See [HTTPS and secure deployment](docs/security-https-deployment.md) for certificate setup, environment variables, Docker Compose instructions, and trusted-proxy configuration.
