@@ -734,3 +734,15 @@ The test plan maintains traceability between the system requirements and their c
 ## Secure Deployment (HTTPS)
 
 Production deployment uses Nginx for TLS termination, HTTP-to-HTTPS redirects, and reverse proxying to the private FastAPI service. Local HTTP development remains supported. See [HTTPS and secure deployment](docs/security-https-deployment.md) for certificate setup, environment variables, Docker Compose instructions, and trusted-proxy configuration.
+
+
+## Backend Tests and Coverage
+
+Install the backend dependencies and run the full test suite with the authentication coverage gate:
+
+```sh
+python -m pip install -r requirements.txt
+python -m pytest -q --cov=app.routers.auth --cov-report=term-missing --cov-fail-under=80
+```
+
+The CI workflow runs the same command. The build fails if coverage of `app.routers.auth` falls below 80%.
