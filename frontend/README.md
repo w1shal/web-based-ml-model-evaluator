@@ -1,84 +1,32 @@
-﻿# ML Model Evaluator â€” Frontend
+# React + TypeScript + Vite
 
-A responsive React and TypeScript frontend for the ML Model Evaluator project, built with Vite.
+This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
-## Workflow
+Currently, two official plugins are available:
 
-The interface contains four steps:
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
-1. **Upload** â€” Entry point for providing a dataset.
-2. **Configure** â€” Placeholder for evaluation settings.
-3. **Evaluate** â€” Placeholder for running an evaluation.
-4. **Results** â€” Placeholder for viewing evaluation results.
+## React Compiler
 
-This issue provides the frontend scaffold and navigation. Detailed upload previews, configuration controls, evaluation execution, and results visualizations are planned for later issues.
+The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
 
-## Requirements
+## Expanding the Oxlint configuration
 
-- Node.js and npm
-- The backend API, if you want to connect the frontend to the backend
+If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
 
-## Installation
-
-From the repository root:
-
-```bash
-cd frontend
-npm install
+```json
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["react", "typescript", "oxc"],
+  "options": {
+    "typeAware": true
+  },
+  "rules": {
+    "react/rules-of-hooks": "error",
+    "react/only-export-components": ["warn", { "allowConstantExport": true }]
+  }
+}
 ```
 
-## Configuration
-
-Create a `.env.local` file in the `frontend` directory with:
-
-```env
-VITE_API_BASE_URL=http://127.0.0.1:8000
-```
-
-Change the URL if your backend runs elsewhere. Restart the Vite development server after changing environment variables.
-
-**Security:** Variables prefixed with `VITE_` are exposed to browser code. Do not put passwords, private API keys, or other secrets in them.
-
-The shared API client supports an optional Bearer token supplied directly to the helper or read from the browser's `localStorage` key `authToken`.
-
-## Development server
-
-From the `frontend` directory:
-
-```bash
-npm run dev
-```
-
-Open the local URL printed in the terminal, usually `http://localhost:5173/`.
-
-## Production build
-
-```bash
-npm run build
-```
-
-## TypeScript check
-
-```bash
-npx tsc --noEmit -p tsconfig.app.json
-```
-
-## Project structure
-
-```text
-frontend/
-â”œâ”€â”€ src/
-â”‚   â”œâ”€â”€ api/client.ts
-â”‚   â”œâ”€â”€ components/StepNavigation.tsx
-â”‚   â”œâ”€â”€ pages/
-â”‚   â”‚   â”œâ”€â”€ UploadPage.tsx
-â”‚   â”‚   â”œâ”€â”€ ConfigurePage.tsx
-â”‚   â”‚   â”œâ”€â”€ EvaluatePage.tsx
-â”‚   â”‚   â””â”€â”€ ResultsPage.tsx
-â”‚   â”œâ”€â”€ types/workflow.ts
-â”‚   â”œâ”€â”€ App.tsx
-â”‚   â”œâ”€â”€ App.css
-â”‚   â””â”€â”€ index.css
-â”œâ”€â”€ package.json
-â””â”€â”€ README.md
-```
+See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.

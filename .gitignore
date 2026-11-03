@@ -1,39 +1,26 @@
 ﻿# Python
 __pycache__/
 *.py[cod]
-.pytest_cache/
+*.pyd
+
+# Virtual environment
 .venv/
+venv/
+env/
 
-# Local database
-evaluator.db
-*.db-journal
-
-# Frontend dependencies and build output
-node_modules/
-frontend/dist/
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Editor and operating system files
-.vscode/
-.DS_Store
-# Python cache files
-__pycache__/
-*.py[cod]
+# Testing and coverage
 .pytest_cache/
+.coverage
+htmlcov/
 
-# Local database
-evaluator.db
+# SQLite database
 *.db
+*.sqlite
+*.sqlite3
 
-# Frontend dependencies and build output
-frontend/node_modules/
-frontend/dist/
-
-# Environment files
+# Environment variables and secrets
 .env
 .env.*
-!.env.example
+
+# IDE
+.vscode/

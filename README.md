@@ -288,8 +288,8 @@ The detailed architecture and design are documented in the project's **Software 
 
 ### Backend
 
-- Python 3.11+
-- FastAPI or Flask, according to the finalized implementation
+- Python 3.10+
+- FastAPI, according to the finalized implementation
 - pandas
 - NumPy
 - scikit-learn
@@ -319,37 +319,21 @@ The frontend technology follows the finalized implementation specified by the pr
 
 ```text
 web-based-ml-model-evaluator/
-│
 ├── backend/
 │   ├── app/
-│   │   ├── auth/
-│   │   ├── validation/
-│   │   ├── evaluation/
-│   │   ├── metrics/
-│   │   ├── reports/
-│   │   └── history/
-│   │
-│   ├── tests/
-│   ├── requirements.txt
-│   └── README.md
-│
+│   │   ├── models/
+│   │   └── database.py
+│   ├── ml/
+│   ├── models/
+│   ├── routers/
+│   ├── services/
+│   └── main.py
 ├── frontend/
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── README.md
-│
+├── tests/
 ├── docs/
-│   ├── Team-14_SAD_Web_Based_ML_Model_Evaluator.pdf
-│   ├── Team-14_SRS_Web_Based_ML_Model_Evaluator.pdf
-│   └── Team-14_Test_Plan_Web_Based_ML_Model_Evaluator.pdf
-│
-├── test-data/
-│   ├── D1-iris.csv
-│   ├── D2-breast-cancer.csv
-│   └── ...
-│
 ├── .gitignore
+├── pyproject.toml
+├── requirements.txt
 └── README.md
 ```
 
@@ -372,45 +356,84 @@ The project requires:
 git clone https://github.com/<GITHUB-USERNAME>/web-based-ml-model-evaluator.git
 cd web-based-ml-model-evaluator
 ```
-
 ### Backend Setup
 
-Navigate to the backend:
+Run the following commands from the repository root.
 
-```bash
-cd backend
-```
-
-Create a Python virtual environment:
-
-```bash
-python -m venv .venv
-```
-
-#### Windows
+Create and activate a virtual environment on Windows:
 
 ```powershell
-.venv\Scripts\activate
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 ```
 
-#### Linux / macOS
+Install dependencies:
 
-```bash
-source .venv/bin/activate
+```powershell
+python -m pip install -r requirements.txt
 ```
 
-Install the required dependencies:
+Initialize the SQLite database and create the tables:
 
-```bash
-pip install -r requirements.txt
+```powershell
+python -c "from backend.app.database import Base, engine; from backend.app import models; Base.metadata.create_all(bind=engine); print('Database initialized:', list(Base.metadata.tables.keys()))"
 ```
 
-Start the backend using the command defined by the finalized backend implementation.
+Start the FastAPI backend:
 
-For a FastAPI implementation:
+```powershell
+python -m uvicorn backend.main:app --reload
+```
 
-```bash
-uvicorn app.main:app --reload
+Open `http://127.0.0.1:8000/health` in your browser. The expected response is:
+
+```json
+{"status": "healthy"}
+```
+
+Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
+
+
+Run the following commands from the repository root.
+
+Create and activate a virtual environment on Windows:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+Install dependencies:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+Initialize the SQLite database and create the tables:
+
+```powershell
+python -c "from backend.app.database import Base, engine; from backend.app import models; Base.metadata.create_all(bind=engine); print('Database initialized:', list(Base.metadata.tables.keys()))"
+```
+
+Start the FastAPI backend:
+
+```powershell
+python -m uvicorn backend.main:app --reload
+```
+
+Open http://127.0.0.1:8000/health in your browser. The expected response is:
+
+```json
+{"status": "healthy"}
+```
+
+Interactive API documentation is available at http://127.0.0.1:8000/docs.
+### Run Tests
+
+From the repository root, run:
+
+```powershell
+python -m pytest -q
 ```
 
 ### Frontend Setup
