@@ -10,3 +10,4 @@ PyJWT
 pydantic[email]
 pytest
 httpx
+pytest-cov
