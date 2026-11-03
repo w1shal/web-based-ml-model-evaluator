@@ -1,14 +1,9 @@
 ﻿import { useRef, useState } from "react";
 import { ApiError, apiRequest } from "../api/client";
+import type { UploadedDataset } from "../types/workflow";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
-interface UploadResponse {
-  dataset_id: string;
-  columns: string[];
-  preview: Array<Record<string, unknown> | unknown[]>;
-  warnings?: string[];
-}
 
 function formatCell(value: unknown): string {
   if (value === null || value === undefined) return "—";
@@ -36,11 +31,15 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong while uploading. Please try again.";
 }
 
-export default function UploadPage() {
+interface UploadPageProps {
+  onUploadSuccess: (dataset: UploadedDataset) => void;
+}
+
+export default function UploadPage({ onUploadSuccess }: UploadPageProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
-  const [result, setResult] = useState<UploadResponse | null>(null);
+  const [result, setResult] = useState<UploadedDataset | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(file: File | null) {
@@ -87,7 +86,7 @@ export default function UploadPage() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await apiRequest<UploadResponse>(
+      const response = await apiRequest<UploadedDataset>(
         "/datasets/upload",
         {
           method: "POST",
@@ -104,6 +103,7 @@ export default function UploadPage() {
       }
 
       setResult(response);
+      onUploadSuccess(response);
     } catch (uploadError) {
       setError(getErrorMessage(uploadError));
     } finally {
