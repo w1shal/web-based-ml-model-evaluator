@@ -42,5 +42,9 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run tests
-        run: python -m pytest -q
+      - name: Run backend tests with authentication coverage gate
+        run: |
+          python -m pytest -q \
+            --cov=app.routers.auth \
+            --cov-report=term-missing \
+            --cov-fail-under=80
