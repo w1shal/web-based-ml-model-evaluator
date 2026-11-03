@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>History · ML Model Evaluator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #1a1a1a; }
+    main { max-width: 980px; margin: 2rem auto; padding: 0 1rem; }
+    nav a { margin-right: 1rem; }
+    #status { min-height: 1.5rem; font-weight: 600; }
+    .scroll { overflow-x: auto; background: #fff; border: 1px solid #d9dce1; border-radius: 8px; }
+    table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+    th, td { text-align: left; padding: .5rem .75rem; border-bottom: 1px solid #e6e8ec; vertical-align: top; }
+    th { background: #eef0f3; }
+    button { padding: .3rem .7rem; cursor: pointer; margin-right: .25rem; }
+    button.danger { color: #8a1c1c; }
+    .detail { background: #fff; border: 1px solid #d9dce1; border-radius: 8px; padding: 1rem; margin-top: 1rem; }
+    pre { background: #f3f4f6; padding: .5rem; border-radius: 4px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+<main>
+  <nav><a href="index.html">Evaluator</a><a href="auth.html">Account</a></nav>
+  <h1>Evaluation history</h1>
+  <p id="status" role="status" aria-live="polite"></p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th>Date</th><th>Dataset</th><th>Algorithms</th><th>Best accuracy</th><th>Actions</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <section id="detail" class="detail" hidden aria-live="polite"></section>
+</main>
+<script type="module" src="history.js"></script>
+</body>
+</html>

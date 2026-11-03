@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+sqlalchemy>=2.0
+bcrypt
+pyjwt
+pydantic[email]
+httpx
+pytest
+pytest-cov

@@ -1,29 +1,13 @@
 name: CI
-
-on:
-  push:
-    branches:
-      - main
-      - "chore/**"
-      - "feature/**"
-      - "fix/**"
-  pull_request:
-    branches:
-      - main
-
-permissions:
-  contents: read
-
+on: [push, pull_request]
 jobs:
-  repository-check:
-    name: Validate repository files
+  test:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Verify required project files
-        run: |
-          test -f README.md
-          test -d docs
-          echo "Repository structure check passed."
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install -r requirements.txt
+      - name: Tests with coverage (fails under 80%)
+        working-directory: backend
+        run: pytest --cov=app --cov-fail-under=80

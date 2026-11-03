@@ -1,27 +1,18 @@
-﻿# Sprint 1 Deviations Log
+# Deviations from SRS v1.0, SADS v1.0 and Test Plan v1.0
 
-**Review date:** 2026-10-29
-**Status:** Draft for teammate review
+Explain these during the final demo. Add rows for any change your teammates made.
 
-## D-01: Evaluation workflow is not yet end-to-end
-
-**Relevant SRS requirement area:** Functional requirements covering dataset upload, evaluation configuration, evaluation execution, and results reporting.
-
-**Relevant SAD design area:** The frontend workflow consisting of Upload, Configure, Evaluate, and Results, including frontend-to-backend integration.
-
-**Expected behavior:** Users should be able to progress through the evaluation workflow and obtain results to the extent specified in the requirements.
-
-**Current implementation:** The frontend displays the four workflow stages, but they are currently a scaffold. Dataset upload, evaluation configuration, execution, and results generation are not yet integrated into this frontend workflow. The application does have a working registration and login interface, JWT-based session verification, logout, and guest entry.
-
-**Reason:** The current implementation has established the authentication flow and frontend structure, while the end-to-end evaluation workflow remains incomplete.
-
-**Follow-up action:** Complete and integrate the missing evaluation stages with the responsible team members. Add relevant integration tests and update the demo when those features become available.
-
-**Demo disclosure:** The four workflow stages must be presented as a scaffold, not as implemented evaluation functionality.
-
-## Review notes
-
-- Verify the exact SRS and SAD section numbers against the source documents before final approval.
-- Review this log with a teammate and add any other confirmed deviations.
-- Do not describe incomplete functionality as implemented.
-- Ensure the demo contains no passwords, access tokens, API secrets, or private user data.
+| # | Sprint | Area | Documented | Implemented | Reason |
+|---|---|---|---|---|---|
+| 1 | 1 | Login (MLE-F-003) | Username/email and password | One `identifier` field accepts username or email | Simpler UI; same requirement |
+| 2 | 1 | Logout (MLE-F-005) | Invalidate token | Server-side blocklist of token ids (jti) | JWTs cannot be revoked otherwise |
+| 3 | 1 | Registration errors | 400/409 | 409 duplicate, 400 invalid fields | Matches Test Plan |
+| 4 | 1 | Password rules | "Strong password" | 8 to 72 chars, letters and digits | bcrypt input limit is 72 bytes |
+| 5 | 1 | Logout status | 200 or 204 | 200 `{message}` | Allowed by SADS 4.3 |
+| 6 | 2 | History routes (SADS 4.3) | `GET /history`, `DELETE /history/{id}` | Added `GET /history/{run_id}` for run detail; list supports `limit`/`offset` and returns `total` | Needed for "view previous runs" in the UI |
+| 7 | 2 | Delete status | 204 or 200 | 200 `{message}` | Consistent with logout |
+| 8 | 2 | Guest runs (SADS open issue) | Short-lived storage, signed refs or in-memory | Stored in the same table with `user_id = NULL`, excluded from history | Simplest option that satisfies TC-025a; add a cleanup job if time allows |
+| 9 | 2 | Rate limiting (MLE-SEC-005) | Threshold on auth endpoints | In-memory sliding window per client IP (login 5/min, register 10/min, configurable) | Single-container deployment; Redis needed for multiple workers |
+| 10 | 2 | HTTPS (MLE-SEC-004) | TLS 1.2+ | nginx terminates TLS (1.2 and 1.3) and redirects HTTP; app also redirects (308) and sends HSTS when `ENFORCE_HTTPS=1` | Defence in depth |
+| 11 | 2 | Error envelope (SADS 4.4) | `{error:{code,message,request_id}}` everywhere | Auth/history routes return `{detail}` until API-ERR (M2) is merged | See `INTEGRATION.md` |
+| 12 | 2 | Startup | Tables created at import | Tables created in the FastAPI startup (lifespan) | Avoids creating a database file during tests |

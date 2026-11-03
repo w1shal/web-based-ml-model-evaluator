@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -23,35 +22,18 @@ def _owned_run(db: Session, user: User, run_id: str) -> EvaluationRun:
 
 
 @router.get("")
-def list_history(
-    limit: int = Query(50, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+def list_history(limit: int = Query(50, ge=1, le=100), offset: int = Query(0, ge=0),
+                 user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     runs, total = svc.list_runs(db, user.user_id, limit, offset)
-    return {
-        "items": [svc.run_summary(r) for r in runs],
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-    }
+    return {"items": [svc.run_summary(r) for r in runs], "total": total, "limit": limit, "offset": offset}
 
 
 @router.get("/{run_id}")
-def get_history_entry(
-    run_id: str,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+def get_history_entry(run_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return svc.run_detail(_owned_run(db, user, run_id))
 
 
 @router.delete("/{run_id}")
-def delete_history_entry(
-    run_id: str,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
+def delete_history_entry(run_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     svc.delete_run(db, _owned_run(db, user, run_id))
     return {"message": "Run deleted"}

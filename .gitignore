@@ -1,0 +1,6 @@
+deploy/certs/
+.env
+*.db
+__pycache__/
+.coverage
+.pytest_cache/
