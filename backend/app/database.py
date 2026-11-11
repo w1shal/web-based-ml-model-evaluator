@@ -1,26 +1,10 @@
+"""Compatibility exports for older imports.
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+The application now uses app.db as its single engine, session, and model
+metadata source. Keeping these names avoids creating a second SQLite database
+for any remaining legacy imports.
+"""
 
-DATABASE_URL = "sqlite:///./evaluator.db"
+from .db import Base, DATABASE_URL, SessionLocal, engine, get_db
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
-
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-)
-
-Base = declarative_base()
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+__all__ = ["Base", "DATABASE_URL", "SessionLocal", "engine", "get_db"]

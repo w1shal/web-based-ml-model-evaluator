@@ -1,10 +1,26 @@
+"""Password hashing and JWT utilities."""
 
-"""Password hashing utilities for the ML Model Evaluator."""
+import os
+import uuid
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
+import jwt
 
 
 BCRYPT_MAX_PASSWORD_BYTES = 72
+ALGO = "HS256"
+EXPIRE_MIN = 60
+
+
+def _jwt_secret() -> str:
+    """Load and validate the JWT signing secret from the environment."""
+    secret = os.getenv("JWT_SECRET", "")
+    if not secret:
+        raise RuntimeError("JWT_SECRET environment variable is required")
+    if len(secret.encode("utf-8")) < 32:
+        raise RuntimeError("JWT_SECRET must be at least 32 bytes long")
+    return secret
 
 
 def hash_password(password: str) -> str:
@@ -13,35 +29,57 @@ def hash_password(password: str) -> str:
         raise TypeError("Password must be a string")
 
     password_bytes = password.encode("utf-8")
-
-    # bcrypt processes at most 72 bytes. Reject longer inputs rather
-    # than silently truncating them or hashing a different password.
     if len(password_bytes) > BCRYPT_MAX_PASSWORD_BYTES:
         raise ValueError("Password exceeds bcrypt's 72-byte limit")
 
-    password_hash = bcrypt.hashpw(
-        password_bytes,
-        bcrypt.gensalt(),
-    )
-
-    return password_hash.decode("utf-8")
+    return bcrypt.hashpw(password_bytes, bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify a password against a previously stored bcrypt hash."""
+    """Verify a password against a stored bcrypt hash."""
     if not isinstance(password, str) or not isinstance(hashed, str):
         return False
 
     password_bytes = password.encode("utf-8")
-
     if len(password_bytes) > BCRYPT_MAX_PASSWORD_BYTES:
         return False
 
     try:
-        return bcrypt.checkpw(
-            password_bytes,
-            hashed.encode("utf-8"),
-        )
+        return bcrypt.checkpw(password_bytes, hashed.encode("utf-8"))
     except (ValueError, TypeError, OverflowError):
-        # Invalid stored hashes must not crash authentication.
         return False
+
+
+def create_token(user_id: int, minutes: int = EXPIRE_MIN) -> str:
+    """Create a signed JWT containing identity, token ID and expiry claims."""
+    now = datetime.now(timezone.utc)
+    payload = {
+        "sub": str(user_id),
+        "jti": uuid.uuid4().hex,
+        "iat": now,
+        "exp": now + timedelta(minutes=minutes),
+    }
+    return jwt.encode(payload, _jwt_secret(), algorithm=ALGO)
+
+
+def decode_token(token: str) -> dict:
+    """Validate a JWT signature, expiry and required claims."""
+    return jwt.decode(
+        token,
+        _jwt_secret(),
+        algorithms=[ALGO],
+        options={"require": ["sub", "jti", "iat", "exp"]},
+    )
+
+
+# Compatibility names retained for existing tests and callers.
+JWT_ALGORITHM = ALGO
+ACCESS_TOKEN_EXPIRE_MINUTES = EXPIRE_MIN
+
+
+def create_access_token(user_id: int, expires_minutes: int = EXPIRE_MIN) -> str:
+    return create_token(user_id, minutes=expires_minutes)
+
+
+def decode_access_token(token: str) -> dict:
+    return decode_token(token)
