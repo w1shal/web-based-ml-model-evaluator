@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .db import engine
 from .models import Base
-from .routers import auth, history
+from .routers import auth, history, reports
 
 
 @asynccontextmanager
@@ -22,6 +22,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(history.router)
+app.include_router(reports.router)
 
 
 @app.exception_handler(RequestValidationError)
