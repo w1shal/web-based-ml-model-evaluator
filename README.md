@@ -729,3 +729,8 @@ The test plan maintains traceability between the system requirements and their c
 | PES2UG24CS578 | 14 | VEDANT SRIVASTAVA |
 | PES2UG24CS592 | 14 | VISHAL VIJAYKUMAR NIDONI |
 | PES2UG24CS599 | 14 | VIVEK R |
+
+
+## Secure deployment
+
+HTTPS termination, trusted-proxy handling, security response headers, configurable authentication rate limits, Docker deployment, and local TLS certificate generation are documented in [the HTTPS deployment guide](docs/security-https-deployment.md). Keep `ENFORCE_HTTPS=0` for direct local HTTP development; use a strong, private `JWT_SECRET` for all environments.

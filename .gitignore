@@ -1,19 +1,25 @@
-﻿# Python
+# Python
 __pycache__/
 *.py[cod]
 *.pyd
 
-# Virtual environment
+# Virtual environments
 .venv/
 venv/
 env/
+
+# Frontend dependencies and builds
+node_modules/
+frontend/node_modules/
+frontend/.next/
+frontend/dist/
 
 # Testing and coverage
 .pytest_cache/
 .coverage
 htmlcov/
 
-# SQLite database
+# SQLite databases
 *.db
 *.sqlite
 *.sqlite3
@@ -21,6 +27,12 @@ htmlcov/
 # Environment variables and secrets
 .env
 .env.*
+!.env.example
+
+# Local TLS certificates and private keys
+deploy/certs/
+*.pem
+*.key
 
 # IDE
 .vscode/

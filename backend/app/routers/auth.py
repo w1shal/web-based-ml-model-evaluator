@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy import delete, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -9,6 +8,7 @@ from sqlalchemy.orm import Session
 from ..db import get_db
 from ..deps import get_current_auth, get_current_user
 from ..models import RevokedToken, User, utcnow
+from ..ratelimit import rate_limit
 from ..schemas import LoginIn, RegisterIn
 from ..security import EXPIRE_MIN, create_token, decode_token, hash_password, verify_password
 
@@ -28,7 +28,11 @@ def _user_out(user: User) -> dict:
     }
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(rate_limit("register", 10))],
+)
 def register(
     body: RegisterIn,
     db: Session = Depends(get_db),
@@ -73,7 +77,10 @@ def register(
     }
 
 
-@router.post("/login")
+@router.post(
+    "/login",
+    dependencies=[Depends(rate_limit("login", 5))],
+)
 def login(
     body: LoginIn,
     db: Session = Depends(get_db),
@@ -120,7 +127,6 @@ def logout(
         timezone.utc,
     ).replace(tzinfo=None)
 
-    # Expired revocation entries are no longer needed.
     db.execute(
         delete(RevokedToken).where(RevokedToken.expires_at < utcnow())
     )
