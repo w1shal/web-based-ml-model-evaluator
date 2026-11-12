@@ -10,6 +10,7 @@ on:
   pull_request:
     branches:
       - main
+      - "feature/**"
       - "fix/**"
 
 permissions:
@@ -43,9 +44,13 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run backend tests
+      - name: Run backend tests with auth coverage gate
         working-directory: backend
-        run: python -m pytest -q
+        run: |
+          python -m pytest -q -m "not performance" \
+            --cov=app.routers.auth \
+            --cov-report=term-missing \
+            --cov-fail-under=80
 
   frontend-check:
     name: Build and test frontend

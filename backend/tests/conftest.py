@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_db
 from app.main import app
 from app.models import Base
+from app.ratelimit import limiter
 from app.services.history import save_run
 
 
@@ -42,6 +43,18 @@ SAMPLE_RESULTS = [
         "confusion_matrix": [[43, 7], [5, 45]],
     },
 ]
+
+
+@pytest.fixture(autouse=True)
+def _clean_rate_limit_state(monkeypatch):
+    """Use generous defaults for ordinary tests and isolate limiter state."""
+    monkeypatch.setenv("RATE_LIMIT_LOGIN_MAX", "1000")
+    monkeypatch.setenv("RATE_LIMIT_REGISTER_MAX", "1000")
+    monkeypatch.setenv("RATE_LIMIT_WINDOW", "60")
+    monkeypatch.delenv("TRUST_PROXY", raising=False)
+    limiter.reset()
+    yield
+    limiter.reset()
 
 
 @pytest.fixture

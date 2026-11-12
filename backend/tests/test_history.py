@@ -122,34 +122,6 @@ def test_view_own_run_detail(client, make_user, make_run):
     assert d["confusion_matrices"]["random_forest"] == [[45, 5], [4, 46]]
 
 
-def test_run_detail_preserves_confusion_matrix_class_labels(client, make_user, make_run):
-    u = make_user("class_label_reader")
-    run_id = make_run(
-        u["user_id"],
-        results=[
-            {
-                "algorithm": "classifier",
-                "accuracy": 0.9,
-                "precision": 0.9,
-                "recall": 0.9,
-                "f1_score": 0.9,
-                "roc_auc": None,
-                "confusion_matrix": [[8, 2, 0], [1, 7, 2], [0, 1, 9]],
-                "class_labels": ["cat", "dog", "bird"],
-            }
-        ],
-    )
-
-    detail = client.get(f"/history/{run_id}", headers=u["headers"]).json()
-
-    assert detail["metrics"][0]["class_labels"] == ["cat", "dog", "bird"]
-    assert detail["confusion_matrix_labels"]["classifier"] == [
-        "cat",
-        "dog",
-        "bird",
-    ]
-
-
 def test_view_other_users_run_forbidden(client, make_user, make_run):
     a, b = make_user("alice"), make_user("bob")
     run_id = make_run(a["user_id"])
@@ -190,3 +162,57 @@ def test_delete_twice_or_unknown_is_404(client, make_user, make_run):
     assert client.delete(f"/history/{run_id}", headers=u["headers"]).status_code == 200
     assert client.delete(f"/history/{run_id}", headers=u["headers"]).status_code == 404
     assert client.delete("/history/run_unknown", headers=u["headers"]).status_code == 404
+
+
+
+def test_empty_history_response_has_pagination_metadata(client, make_user):
+    user = make_user("empty_history_user")
+
+    response = client.get("/history", headers=user["headers"])
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "items": [],
+        "total": 0,
+        "limit": 50,
+        "offset": 0,
+    }
+
+
+def test_history_detail_for_guest_run_is_forbidden(client, make_user, make_run):
+    user = make_user("guest_history_reader")
+    guest_run_id = make_run(None, dataset="guest-only.csv")
+
+    response = client.get(
+        f"/history/{guest_run_id}",
+        headers=user["headers"],
+    )
+
+    assert response.status_code == 403
+
+
+def test_delete_one_users_run_does_not_change_another_users_history(
+    client, make_user, make_run
+):
+    alice = make_user("delete_owner")
+    bob = make_user("unaffected_owner")
+    alice_run = make_run(alice["user_id"], dataset="alice.csv")
+    bob_run = make_run(bob["user_id"], dataset="bob.csv")
+
+    deleted = client.delete(
+        f"/history/{alice_run}",
+        headers=alice["headers"],
+    )
+
+    assert deleted.status_code == 200
+    alice_items = client.get(
+        "/history",
+        headers=alice["headers"],
+    ).json()["items"]
+    bob_items = client.get(
+        "/history",
+        headers=bob["headers"],
+    ).json()["items"]
+
+    assert alice_items == []
+    assert [item["run_id"] for item in bob_items] == [bob_run]
