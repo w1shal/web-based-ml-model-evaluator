@@ -1,3 +1,4 @@
-"""Evaluation engine. Pure Python/scikit-learn: no FastAPI or database imports in this package."""
-from . import algorithms  # noqa: F401  (registers the built-in algorithms)
-from .errors import EvaluationError  # noqa: F401
+"""Machine-learning evaluation primitives; built-ins are added by MLE-F-013."""
+from .errors import EvaluationError
+
+__all__ = ["EvaluationError"]
