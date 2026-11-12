@@ -1,7 +1,8 @@
-"""Request model for the evaluation endpoint."""
 from pydantic import BaseModel, Field
 
+
 class EvaluationRequest(BaseModel):
+    """POST /evaluations body (SADS 4.3.1)."""
     dataset_id: str = Field(min_length=1, max_length=64)
     target_column: str = Field(min_length=1, max_length=255)
     feature_columns: list[str] = Field(min_length=1, max_length=500)
