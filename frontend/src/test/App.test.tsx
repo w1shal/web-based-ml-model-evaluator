@@ -11,6 +11,8 @@ vi.mock("../lib/api", () => ({
     login: vi.fn(),
     logout: vi.fn(),
     me: vi.fn(),
+    historyEntry: vi.fn(),
+    downloadReport: vi.fn(),
   },
 }));
 
@@ -59,6 +61,49 @@ describe("Authentication UI", () => {
     expect(
       screen.getByRole("heading", { name: "Sign in to your account" }),
     ).toBeInTheDocument();
+  });
+
+  it("loads a saved run and opens the results dashboard", async () => {
+    const user = userEvent.setup();
+    mockedApi.login.mockResolvedValue({
+      access_token: "test-access-token",
+      token_type: "bearer",
+      expires_in: 3600,
+      user: demoUser,
+    });
+    mockedApi.historyEntry.mockResolvedValue({
+      run_id: "run_saved123",
+      dataset_name: "Iris.csv",
+      timestamp: "2026-11-10T12:00:00Z",
+      status: "completed",
+      algorithms: ["Random Forest"],
+      metrics: [{
+        algorithm: "Random Forest",
+        accuracy: 0.92,
+        precision: 0.91,
+        recall: 0.9,
+        f1_score: 0.905,
+        roc_auc: 0.95,
+        class_labels: ["setosa", "versicolor"],
+      }],
+      target_column: "species",
+      feature_columns: ["sepal_length"],
+      split_ratio: 0.2,
+      confusion_matrices: { "Random Forest": [[45, 5], [4, 46]] },
+      confusion_matrix_labels: { "Random Forest": ["setosa", "versicolor"] },
+    });
+
+    render(<App />);
+    await user.type(screen.getByLabelText("Username or email"), demoUser.email);
+    await user.type(screen.getByLabelText("Password"), "ModelTest123");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await screen.findByRole("heading", { name: `Welcome, ${demoUser.username}.` });
+    await user.type(screen.getByLabelText("Evaluation run ID"), "run_saved123");
+    await user.click(screen.getByRole("button", { name: "Open results" }));
+
+    expect(await screen.findByRole("heading", { name: "Results for Iris.csv" })).toBeInTheDocument();
+    expect(mockedApi.historyEntry).toHaveBeenCalledWith("run_saved123", "test-access-token");
+    expect(screen.getByRole("table", { name: "Model comparison" })).toBeInTheDocument();
   });
 
   it("rejects invalid registration fields before calling the API", async () => {

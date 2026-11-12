@@ -48,6 +48,15 @@ def save_run(
         run.timestamp = timestamp
 
     for r in results:
+        serialized_metrics = r.get("serialized_metrics") or {}
+        class_labels = r.get("class_labels") or r.get(
+            "confusion_matrix_labels"
+        )
+        if class_labels is not None:
+            serialized_metrics = {
+                **serialized_metrics,
+                "class_labels": list(class_labels),
+            }
         run.results.append(
             AlgorithmResult(
                 algorithm_name=r["algorithm"],
@@ -57,7 +66,7 @@ def save_run(
                 f1_score=r.get("f1_score"),
                 roc_auc=r.get("roc_auc"),
                 confusion_matrix=r.get("confusion_matrix"),
-                serialized_metrics=r.get("serialized_metrics"),
+                serialized_metrics=serialized_metrics or None,
             )
         )
 
@@ -100,7 +109,7 @@ def delete_run(db: Session, run: EvaluationRun) -> None:
 
 
 def _metrics(r: AlgorithmResult) -> dict:
-    return {
+    metrics = {
         "algorithm": r.algorithm_name,
         "accuracy": r.accuracy,
         "precision": r.precision,
@@ -108,6 +117,13 @@ def _metrics(r: AlgorithmResult) -> dict:
         "f1_score": r.f1_score,
         "roc_auc": r.roc_auc,
     }
+    metadata = r.serialized_metrics or {}
+    labels = metadata.get("class_labels") or metadata.get(
+        "confusion_matrix_labels"
+    )
+    if labels is not None:
+        metrics["class_labels"] = labels
+    return metrics
 
 
 def _iso(ts: datetime) -> str:
@@ -134,6 +150,16 @@ def run_detail(run: EvaluationRun) -> dict:
             "split_ratio": run.split_ratio,
             "confusion_matrices": {
                 r.algorithm_name: r.confusion_matrix for r in run.results
+            },
+            "confusion_matrix_labels": {
+                r.algorithm_name: (
+                    (r.serialized_metrics or {}).get("class_labels")
+                    or (r.serialized_metrics or {}).get(
+                        "confusion_matrix_labels"
+                    )
+                )
+                for r in run.results
+                if r.confusion_matrix is not None
             },
         }
     )

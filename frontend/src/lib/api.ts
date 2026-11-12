@@ -1,4 +1,6 @@
 
+import type { EvaluationRunDetail } from "../types/results";
+
 const API_BASE_URL = (
   import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000"
 ).replace(/\/+$/, "");
@@ -114,5 +116,39 @@ export const api = {
 
   me(token: string) {
     return request<AuthUser>("/auth/me", { method: "GET" }, token);
+  },
+
+  historyEntry(runId: string, token: string) {
+    return request<EvaluationRunDetail>(
+      `/history/${encodeURIComponent(runId)}`,
+      { method: "GET" },
+      token,
+    );
+  },
+
+  async downloadReport(runId: string, format: "csv" | "pdf", token?: string | null) {
+    const headers = new Headers();
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+
+    let response: Response;
+    try {
+      response = await fetch(
+        `${API_BASE_URL}/reports/${encodeURIComponent(runId)}/${format}`,
+        { method: "GET", headers },
+      );
+    } catch {
+      throw new Error("Cannot reach the server. Check that the backend is running.");
+    }
+
+    if (!response.ok) {
+      const data = (await response.json().catch(() => null)) as BackendError | null;
+      const message =
+        (typeof data?.detail === "string" && data.detail) ||
+        data?.error?.message ||
+        "The report could not be downloaded.";
+      throw new Error(message);
+    }
+
+    return response.blob();
   },
 };

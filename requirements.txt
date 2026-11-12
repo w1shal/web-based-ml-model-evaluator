@@ -10,3 +10,5 @@ PyJWT
 pydantic[email]
 pytest
 httpx
+reportlab
+pypdf

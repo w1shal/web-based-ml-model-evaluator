@@ -1,6 +1,8 @@
 
 import { useState, type FormEvent } from "react";
 import { api, type AuthUser } from "./lib/api";
+import ResultsPage from "./pages/ResultsPage";
+import type { EvaluationRunDetail } from "./types/results";
 import "./App.css";
 
 type AuthMode = "login" | "register";
@@ -52,6 +54,9 @@ export default function App() {
   const [inWorkspace, setInWorkspace] = useState(false);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [savedRunId, setSavedRunId] = useState("");
+  const [currentRun, setCurrentRun] = useState<EvaluationRunDetail | null>(null);
+  const [loadingRun, setLoadingRun] = useState(false);
 
   function changeMode(nextMode: AuthMode) {
     setMode(nextMode);
@@ -134,6 +139,34 @@ export default function App() {
     setInWorkspace(true);
   }
 
+  async function handleLoadSavedRun(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user || !accessToken) {
+      setNotice({ kind: "info", text: "Sign in to open a saved evaluation." });
+      return;
+    }
+
+    const runId = savedRunId.trim();
+    if (!runId) return;
+
+    setCurrentRun(null);
+    setLoadingRun(true);
+    setBusy(true);
+    setNotice(null);
+    try {
+      const result = await api.historyEntry(runId, accessToken);
+      setCurrentRun(result);
+    } catch (error) {
+      setNotice({
+        kind: "error",
+        text: error instanceof Error ? error.message : "Unable to load this evaluation.",
+      });
+    } finally {
+      setLoadingRun(false);
+      setBusy(false);
+    }
+  }
+
   async function verifySession() {
     if (!accessToken) return;
 
@@ -178,6 +211,8 @@ export default function App() {
       setAccessToken(null);
       setUser(null);
       setPassword("");
+      setSavedRunId("");
+      setCurrentRun(null);
       setInWorkspace(false);
       setMode("login");
       setNotice(logoutNotice);
@@ -225,7 +260,7 @@ export default function App() {
           </p>
 
           {notice && (
-            <div className={`notice notice-${notice.kind}`} role="status">
+            <div className={`notice notice-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
               {notice.text}
             </div>
           )}
@@ -240,6 +275,43 @@ export default function App() {
                 {busy ? "Checking…" : "Verify session"}
               </button>
             </section>
+          )}
+
+          <section className="saved-run-card" aria-busy={loadingRun}>
+            <div>
+              <h2>Open saved results</h2>
+              <p>Enter a completed run ID to view its chart, comparison table, and confusion matrix.</p>
+            </div>
+            {user ? (
+              <form className="saved-run-form" onSubmit={handleLoadSavedRun}>
+                <label htmlFor="saved-run-id">Evaluation run ID</label>
+                <div className="saved-run-controls">
+                  <input
+                    id="saved-run-id"
+                    value={savedRunId}
+                    onChange={(event) => setSavedRunId(event.target.value)}
+                    placeholder="run_…"
+                    autoComplete="off"
+                    required
+                    disabled={loadingRun}
+                  />
+                  <button className="button button-primary" type="submit" disabled={loadingRun || !savedRunId.trim()}>
+                    {loadingRun ? "Loading results…" : "Open results"}
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <p className="saved-run-signin">Sign in to open a saved evaluation run.</p>
+            )}
+            {loadingRun && <p className="results-status" role="status">Loading evaluation results…</p>}
+          </section>
+
+          {currentRun && (
+            <ResultsPage
+              run={currentRun}
+              token={accessToken}
+              onClose={() => setCurrentRun(null)}
+            />
           )}
 
           <h2 className="section-heading">Evaluation workflow</h2>
@@ -347,7 +419,7 @@ export default function App() {
             </div>
 
             {notice && (
-              <div className={`notice notice-${notice.kind}`} role="status">
+              <div className={`notice notice-${notice.kind}`} role={notice.kind === "error" ? "alert" : "status"}>
                 {notice.text}
               </div>
             )}

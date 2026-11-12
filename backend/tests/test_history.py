@@ -122,6 +122,34 @@ def test_view_own_run_detail(client, make_user, make_run):
     assert d["confusion_matrices"]["random_forest"] == [[45, 5], [4, 46]]
 
 
+def test_run_detail_preserves_confusion_matrix_class_labels(client, make_user, make_run):
+    u = make_user("class_label_reader")
+    run_id = make_run(
+        u["user_id"],
+        results=[
+            {
+                "algorithm": "classifier",
+                "accuracy": 0.9,
+                "precision": 0.9,
+                "recall": 0.9,
+                "f1_score": 0.9,
+                "roc_auc": None,
+                "confusion_matrix": [[8, 2, 0], [1, 7, 2], [0, 1, 9]],
+                "class_labels": ["cat", "dog", "bird"],
+            }
+        ],
+    )
+
+    detail = client.get(f"/history/{run_id}", headers=u["headers"]).json()
+
+    assert detail["metrics"][0]["class_labels"] == ["cat", "dog", "bird"]
+    assert detail["confusion_matrix_labels"]["classifier"] == [
+        "cat",
+        "dog",
+        "bird",
+    ]
+
+
 def test_view_other_users_run_forbidden(client, make_user, make_run):
     a, b = make_user("alice"), make_user("bob")
     run_id = make_run(a["user_id"])
