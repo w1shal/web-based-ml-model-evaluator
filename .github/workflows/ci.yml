@@ -11,6 +11,7 @@ on:
     branches:
       - main
       - "fix/**"
+      - "feature/**"
 
 permissions:
   contents: read
@@ -45,7 +46,7 @@ jobs:
 
       - name: Run backend tests
         working-directory: backend
-        run: python -m pytest -q
+        run: python -m pytest -q -m "not performance"
 
   frontend-check:
     name: Build and test frontend

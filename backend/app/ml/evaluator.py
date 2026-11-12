@@ -1,4 +1,4 @@
-"""Evaluation orchestrator (MLE-F-014, MLE-F-016)."""
+"""Evaluation orchestrator: split, train registered models, compute all classification metrics."""
 import logging
 import math
 import time
@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
 from .errors import EvaluationError
-from .metrics import classification_metrics
+from .metrics import classification_metrics, confusion_matrix_rows, roc_auc
 from .preprocessing import build_preprocessor, prepare_data
 from .registry import get_algorithm
 
@@ -28,15 +28,23 @@ class EvaluationConfig:
     random_state: int = RANDOM_STATE
 
 
+def _positive_class_scores(model, X):
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    if hasattr(model, "decision_function"):
+        return model.decision_function(X)
+    return None
+
+
 def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
     if not cfg.algorithms:
         raise EvaluationError("NO_ALGORITHM", "Select at least one algorithm", 400)
     if not 0 < cfg.test_size < 1:
         raise EvaluationError("INVALID_SPLIT", "test_size must be between 0 and 1", 400)
-    unique_algorithms = list(dict.fromkeys(cfg.algorithms))
-    if len(unique_algorithms) > MAX_ALGORITHMS_PER_RUN:
+    algorithm_ids = list(dict.fromkeys(cfg.algorithms))
+    if len(algorithm_ids) > MAX_ALGORITHMS_PER_RUN:
         raise EvaluationError("TOO_MANY_ALGORITHMS", "Select no more than 5 algorithms per run", 400)
-    specs = [get_algorithm(algorithm_id) for algorithm_id in unique_algorithms]
+    specs = [get_algorithm(algorithm_id) for algorithm_id in algorithm_ids]
 
     prep = prepare_data(df, cfg.target_column, cfg.feature_columns, cfg.missing_value_strategy)
     n, n_classes = len(prep.y), len(prep.classes)
@@ -54,14 +62,21 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
         started = time.perf_counter()
         try:
             model = Pipeline([
-                ("prep", build_preprocessor(prep.numeric_cols, spec.needs_scaling)),
+                ("prep", build_preprocessor(prep.numeric_cols, prep.categorical_cols, spec.needs_scaling)),
                 ("model", spec.factory(cfg.random_state, len(y_train))),
             ])
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
+            try:
+                scores = _positive_class_scores(model, X_test) if n_classes == 2 else None
+            except Exception:
+                scores = None
             results.append({
                 "algorithm": spec.id, "name": spec.name, "status": "completed",
                 **classification_metrics(y_test, y_pred, n_classes),
+                **roc_auc(y_test, scores, n_classes),
+                "confusion_matrix": confusion_matrix_rows(y_test, y_pred, n_classes),
+                "classes": prep.classes,
                 "duration_ms": int((time.perf_counter() - started) * 1000),
             })
         except Exception as exc:

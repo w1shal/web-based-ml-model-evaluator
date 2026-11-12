@@ -1,4 +1,4 @@
-"""Dataset validation and preprocessing for classification evaluation."""
+"""Dataset cleaning and feature preprocessing, including categorical columns."""
 from dataclasses import dataclass
 from typing import Any
 
@@ -7,12 +7,13 @@ import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder, StandardScaler
 
 from .errors import EvaluationError
 
 MISSING_STRATEGIES = ("median_imputation", "drop_rows")
 MAX_CLASSES = 50
+MAX_CATEGORIES = 50
 
 
 @dataclass
@@ -76,9 +77,16 @@ def prepare_data(df: pd.DataFrame, target: str, features: list[str], strategy: s
             numeric_cols.append(column)
         else:
             categorical_cols.append(column)
-    if categorical_cols:
-        raise EvaluationError("UNSUPPORTED_FEATURE_TYPE",
-                              f"Non-numeric feature column(s) are not supported yet: {', '.join(categorical_cols)}", 422)
+    for column in categorical_cols:
+        data[column] = data[column].map(lambda value: value if pd.isna(value) else str(value)).astype(object)
+        data[column] = data[column].where(data[column].notna(), np.nan)
+        distinct = int(data[column].nunique())
+        if distinct > MAX_CATEGORIES:
+            raise EvaluationError(
+                "TOO_MANY_CATEGORIES",
+                f"Feature '{column}' has {distinct} distinct values (maximum {MAX_CATEGORIES}); remove it or group its values",
+                422,
+            )
 
     raw = data[target]
     if pd.api.types.is_float_dtype(raw) and not np.all(np.equal(np.mod(raw.to_numpy(dtype=float), 1), 0)):
@@ -105,15 +113,26 @@ def prepare_data(df: pd.DataFrame, target: str, features: list[str], strategy: s
         "missing_cells_by_column": missing_cells,
         "numeric_features": numeric_cols,
         "categorical_features": categorical_cols,
+        "categorical_encoding": "one_hot" if categorical_cols else None,
+        "imputation_numeric": "median" if strategy == "median_imputation" else None,
+        "imputation_categorical": "most_frequent" if strategy == "median_imputation" else None,
         "empty_features_removed": empty,
     }
     return PreparedData(X=data[kept], y=y, classes=[_py(value) for value in encoder.classes_],
                         numeric_cols=numeric_cols, categorical_cols=categorical_cols, info=info)
 
 
-def build_preprocessor(numeric_cols: list, scale: bool) -> ColumnTransformer:
-    """Fit imputers/scalers on the training split only."""
-    steps = [("impute", SimpleImputer(strategy="median"))]
-    if scale:
-        steps.append(("scale", StandardScaler()))
-    return ColumnTransformer([("num", Pipeline(steps), numeric_cols)], remainder="drop")
+def build_preprocessor(numeric_cols: list, categorical_cols: list, scale: bool) -> ColumnTransformer:
+    """Fit preprocessing on training rows only; ignore categories not seen during training."""
+    parts = []
+    if numeric_cols:
+        numeric_steps = [("impute", SimpleImputer(strategy="median"))]
+        if scale:
+            numeric_steps.append(("scale", StandardScaler()))
+        parts.append(("num", Pipeline(numeric_steps), numeric_cols))
+    if categorical_cols:
+        parts.append(("cat", Pipeline([
+            ("impute", SimpleImputer(strategy="most_frequent")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore", sparse_output=False)),
+        ]), categorical_cols))
+    return ColumnTransformer(parts, remainder="drop")

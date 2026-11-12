@@ -26,7 +26,7 @@ register_algorithm(AlgorithmSpec(
 ))
 register_algorithm(AlgorithmSpec(
     id="svm", name="Support Vector Machine", needs_scaling=True,
-    factory=lambda seed, n_train: SVC(kernel="rbf", probability=True, random_state=seed),
+    factory=lambda seed, n_train: SVC(kernel="rbf", random_state=seed),
     description="RBF kernel; features are standardised first.",
 ))
 register_algorithm(AlgorithmSpec(
