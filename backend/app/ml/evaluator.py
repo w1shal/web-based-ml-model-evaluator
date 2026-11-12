@@ -1,4 +1,4 @@
-"""Split, train and evaluate selected classifiers with ROC-AUC and confusion matrices."""
+"""Split, train and evaluate selected classifiers with mixed-type preprocessing."""
 import logging
 import math
 import time
@@ -28,7 +28,6 @@ class EvaluationConfig:
 
 
 def _decision_scores(model, X):
-    """Get continuous scores for the encoded positive class (1)."""
     if hasattr(model, "predict_proba"):
         return model.predict_proba(X)[:, 1]
     if hasattr(model, "decision_function"):
@@ -51,12 +50,14 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
             random_state=cfg.random_state, stratify=prepared.y)
     except ValueError:
         raise EvaluationError("SPLIT_FAILED", "Dataset cannot be stratified with this split", 422) from None
+
     results = []
     for spec in specs:
         started = time.perf_counter()
         try:
             model = Pipeline([
-                ("preprocessor", build_preprocessor(prepared.numeric_cols, spec.needs_scaling)),
+                ("preprocessor", build_preprocessor(
+                    prepared.numeric_cols, prepared.categorical_cols, spec.needs_scaling)),
                 ("classifier", spec.factory(cfg.random_state, len(y_train))),
             ])
             model.fit(X_train, y_train)
@@ -84,6 +85,7 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
                 "error": f"Training failed ({type(exc).__name__})",
                 "duration_ms": int((time.perf_counter() - started) * 1000),
             })
+
     failed = sum(result["status"] == "failed" for result in results)
     status = "completed" if failed == 0 else "failed" if failed == len(results) else "partial"
     return {
