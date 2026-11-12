@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .db import engine
 from .models import Base
-from .routers import auth, history, reports
+from .routers import auth, history, reports, evaluations
 
 
 @asynccontextmanager
@@ -15,36 +15,18 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
-    title="Web Based ML Model Evaluator",
-    lifespan=lifespan,
-)
-
+app = FastAPI(title="Web Based ML Model Evaluator", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(history.router)
 app.include_router(reports.router)
+app.include_router(evaluations.router)
+app.include_router(evaluations.algorithms_router)
 
 
 @app.exception_handler(RequestValidationError)
-async def validation_handler(
-    request: Request,
-    exc: RequestValidationError,
-):
-    fields = [
-        {
-            "field": ".".join(str(part) for part in error["loc"][1:]),
-            "message": error["msg"],
-        }
-        for error in exc.errors()
-    ]
-
-    return JSONResponse(
-        status_code=400,
-        content={
-            "error": {
-                "code": "INVALID_REQUEST",
-                "message": "Invalid or missing fields",
-                "fields": fields,
-            }
-        },
-    )
+async def validation_handler(request: Request, exc: RequestValidationError):
+    fields = [{"field": ".".join(str(part) for part in error["loc"][1:]), "message": error["msg"]}
+              for error in exc.errors()]
+    return JSONResponse(status_code=400, content={"error": {
+        "code": "INVALID_REQUEST", "message": "Invalid or missing fields", "fields": fields
+    }})
