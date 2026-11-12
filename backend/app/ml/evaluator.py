@@ -1,4 +1,4 @@
-"""Split, train and evaluate selected classifiers."""
+"""Split, train and evaluate selected classifiers with confusion matrices."""
 import logging
 import math
 import time
@@ -9,12 +9,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
 from .errors import EvaluationError
-from .metrics import classification_metrics
+from .metrics import classification_metrics, confusion_matrix_rows
 from .preprocessing import build_preprocessor, prepare_data
 from .selection import resolve_selection
 
 log = logging.getLogger(__name__)
 RANDOM_STATE = 42
+
 
 @dataclass
 class EvaluationConfig:
@@ -24,6 +25,7 @@ class EvaluationConfig:
     test_size: float = 0.2
     missing_value_strategy: str = "median_imputation"
     random_state: int = RANDOM_STATE
+
 
 def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
     if not 0.05 <= cfg.test_size <= 0.5:
@@ -50,16 +52,29 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
             ])
             model.fit(X_train, y_train)
             predicted = model.predict(X_test)
-            results.append({"algorithm": spec.id, "name": spec.name, "status": "completed",
-                            **classification_metrics(y_test, predicted, n_classes),
-                            "duration_ms": int((time.perf_counter() - started) * 1000)})
+            results.append({
+                "algorithm": spec.id,
+                "name": spec.name,
+                "status": "completed",
+                **classification_metrics(y_test, predicted, n_classes),
+                "confusion_matrix": confusion_matrix_rows(y_test, predicted, n_classes),
+                "classes": prepared.classes,
+                "duration_ms": int((time.perf_counter() - started) * 1000),
+            })
         except Exception as exc:
             log.warning("Algorithm %s failed (%s)", spec.id, type(exc).__name__)
-            results.append({"algorithm": spec.id, "name": spec.name, "status": "failed",
-                            "error": f"Training failed ({type(exc).__name__})",
-                            "duration_ms": int((time.perf_counter() - started) * 1000)})
+            results.append({
+                "algorithm": spec.id,
+                "name": spec.name,
+                "status": "failed",
+                "error": f"Training failed ({type(exc).__name__})",
+                "duration_ms": int((time.perf_counter() - started) * 1000),
+            })
     failed = sum(result["status"] == "failed" for result in results)
     status = "completed" if failed == 0 else "failed" if failed == len(results) else "partial"
-    return {"status": status, "results": results,
-            "dataset": {"rows": prepared.info["rows_used"], "train_rows": len(y_train), "test_rows": len(y_test)},
-            "preprocessing": prepared.info}
+    return {
+        "status": status,
+        "results": results,
+        "dataset": {"rows": prepared.info["rows_used"], "train_rows": len(y_train), "test_rows": len(y_test)},
+        "preprocessing": prepared.info,
+    }

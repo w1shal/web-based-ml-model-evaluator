@@ -1,10 +1,7 @@
-"""Reference-compatible classification metrics.
-
-A two-class target uses binary averaging (the second sorted/encoded class is
-positive). Multiclass targets use support-weighted averaging, not macro.
-"""
+"""Reference-compatible classification metrics and confusion matrices."""
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, precision_score, recall_score
+
 
 def classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> dict:
     average = "binary" if n_classes == 2 else "weighted"
@@ -18,3 +15,8 @@ def classification_metrics(y_true: np.ndarray, y_pred: np.ndarray, n_classes: in
         "f1_score": float(f1_score(y_true, y_pred, **options)),
         "metric_average": average,
     }
+
+
+def confusion_matrix_rows(y_true: np.ndarray, y_pred: np.ndarray, n_classes: int) -> list[list[int]]:
+    """Return matrix rows as true labels and columns as predicted labels."""
+    return confusion_matrix(y_true, y_pred, labels=list(range(n_classes))).tolist()
