@@ -1,4 +1,4 @@
-"""Split, train and evaluate selected classifiers with confusion matrices."""
+"""Split, train and evaluate selected classifiers with ROC-AUC and confusion matrices."""
 import logging
 import math
 import time
@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 
 from .errors import EvaluationError
-from .metrics import classification_metrics, confusion_matrix_rows
+from .metrics import classification_metrics, confusion_matrix_rows, roc_auc_metrics
 from .preprocessing import build_preprocessor, prepare_data
 from .selection import resolve_selection
 
@@ -25,6 +25,15 @@ class EvaluationConfig:
     test_size: float = 0.2
     missing_value_strategy: str = "median_imputation"
     random_state: int = RANDOM_STATE
+
+
+def _decision_scores(model, X):
+    """Get continuous scores for the encoded positive class (1)."""
+    if hasattr(model, "predict_proba"):
+        return model.predict_proba(X)[:, 1]
+    if hasattr(model, "decision_function"):
+        return model.decision_function(X)
+    return None
 
 
 def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
@@ -52,11 +61,16 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
             ])
             model.fit(X_train, y_train)
             predicted = model.predict(X_test)
+            try:
+                scores = _decision_scores(model, X_test) if n_classes == 2 else None
+            except Exception:
+                scores = None
             results.append({
                 "algorithm": spec.id,
                 "name": spec.name,
                 "status": "completed",
                 **classification_metrics(y_test, predicted, n_classes),
+                **roc_auc_metrics(y_test, scores, n_classes),
                 "confusion_matrix": confusion_matrix_rows(y_test, predicted, n_classes),
                 "classes": prepared.classes,
                 "duration_ms": int((time.perf_counter() - started) * 1000),
