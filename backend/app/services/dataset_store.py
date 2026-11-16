@@ -10,7 +10,6 @@ import re
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 import pandas as pd
 
@@ -32,7 +31,7 @@ class LoadedDataset:
     df: pd.DataFrame
 
 
-def store_dataset(content: bytes, name: str, owner_id: Optional[int]) -> str:
+def store_dataset(content: bytes, name: str, owner_id: int | None) -> str:
     dataset_id = "ds_" + uuid.uuid4().hex
     base = _dir()
     (base / f"{dataset_id}.csv").write_bytes(content)
@@ -40,7 +39,7 @@ def store_dataset(content: bytes, name: str, owner_id: Optional[int]) -> str:
     return dataset_id
 
 
-def load_dataset(dataset_id: str, requester_id: Optional[int]) -> LoadedDataset:
+def load_dataset(dataset_id: str, requester_id: int | None) -> LoadedDataset:
     not_found = EvaluationError("DATASET_NOT_FOUND", "Dataset not found", 404)
     if not _ID_RE.fullmatch(dataset_id):
         raise not_found
@@ -58,5 +57,5 @@ def load_dataset(dataset_id: str, requester_id: Optional[int]) -> LoadedDataset:
     try:
         frame = pd.read_csv(io.BytesIO(csv_path.read_bytes()), encoding="utf-8-sig")
     except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError, OSError):
-        raise EvaluationError("INVALID_DATASET", "The stored dataset is not a valid CSV file", 422)
+        raise EvaluationError("INVALID_DATASET", "The stored dataset is not a valid CSV file", 422) from None
     return LoadedDataset(dataset_id=dataset_id, name=meta.get("name") or f"{dataset_id}.csv", df=frame)

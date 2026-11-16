@@ -1,8 +1,10 @@
 from sklearn.datasets import load_iris
 from sklearn.dummy import DummyClassifier
+
 from app.ml.algorithms import BUILTIN_IDS
 from app.ml.evaluator import EvaluationConfig, run_evaluation
 from app.ml.registry import AlgorithmSpec, register_algorithm, unregister_algorithm
+
 
 def iris():
     frame = load_iris(as_frame=True).frame

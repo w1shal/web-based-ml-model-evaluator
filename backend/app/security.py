@@ -7,7 +7,6 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import jwt
 
-
 BCRYPT_MAX_PASSWORD_BYTES = 72
 ALGO = "HS256"
 EXPIRE_MIN = 60

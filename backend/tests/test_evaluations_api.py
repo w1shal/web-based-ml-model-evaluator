@@ -1,5 +1,4 @@
 """API contract tests for model evaluation endpoints."""
-import pandas as pd
 import pytest
 from sklearn.datasets import load_breast_cancer, load_iris
 

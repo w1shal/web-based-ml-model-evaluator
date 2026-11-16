@@ -1,5 +1,4 @@
 import pytest
-
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
@@ -9,7 +8,6 @@ from app.db import get_db
 from app.main import app
 from app.models import Base, User
 from app.security import verify_password
-
 
 GOOD = {
     "username": "vivek",

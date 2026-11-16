@@ -5,6 +5,6 @@ metadata source. Keeping these names avoids creating a second SQLite database
 for any remaining legacy imports.
 """
 
-from .db import Base, DATABASE_URL, SessionLocal, engine, get_db
+from .db import DATABASE_URL, Base, SessionLocal, engine, get_db
 
 __all__ = ["Base", "DATABASE_URL", "SessionLocal", "engine", "get_db"]

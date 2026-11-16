@@ -5,7 +5,6 @@ the optional JWT dependency. The client never supplies the owner ID.
 """
 import uuid
 from datetime import datetime
-from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -20,7 +19,7 @@ def new_run_id() -> str:
 
 def save_run(
     db: Session,
-    user_id: Optional[int],
+    user_id: int | None,
     *,
     dataset_name: str,
     target_column: str,
@@ -28,7 +27,7 @@ def save_run(
     split_ratio: float,
     results: list[dict],
     status: str = "completed",
-    timestamp: Optional[datetime] = None,
+    timestamp: datetime | None = None,
 ) -> EvaluationRun:
     """Persist one evaluation. A None user_id represents a guest run."""
     run = EvaluationRun(
@@ -67,7 +66,7 @@ def save_run(
 
 def persist_completed_evaluation(
     db: Session,
-    authenticated_user: Optional[User],
+    authenticated_user: User | None,
     *,
     dataset_name: str,
     target_column: str,
@@ -75,7 +74,7 @@ def persist_completed_evaluation(
     split_ratio: float,
     results: list[dict],
     status: str = "completed",
-    timestamp: Optional[datetime] = None,
+    timestamp: datetime | None = None,
 ) -> EvaluationRun:
     """Persist a finished evaluation using identity from the verified JWT user."""
     user_id = authenticated_user.user_id if authenticated_user else None
@@ -106,7 +105,7 @@ def list_runs(db: Session, user_id: int, limit: int = 50, offset: int = 0):
     return rows, total
 
 
-def get_run(db: Session, run_id: str) -> Optional[EvaluationRun]:
+def get_run(db: Session, run_id: str) -> EvaluationRun | None:
     return db.get(EvaluationRun, run_id)
 
 

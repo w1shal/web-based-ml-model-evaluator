@@ -10,8 +10,7 @@ from ..deps import get_current_auth, get_current_user
 from ..models import RevokedToken, User, utcnow
 from ..ratelimit import rate_limit
 from ..schemas import LoginIn, RegisterIn
-from ..security import EXPIRE_MIN, create_token, decode_token, hash_password, verify_password
-
+from ..security import EXPIRE_MIN, create_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 

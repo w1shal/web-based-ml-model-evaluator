@@ -16,7 +16,6 @@ from app.models import Base
 from app.ratelimit import limiter
 from app.services.history import save_run
 
-
 GOOD = {
     "username": "vivek",
     "email": "vivek@example.com",
@@ -43,6 +42,23 @@ SAMPLE_RESULTS = [
         "confusion_matrix": [[43, 7], [5, 45]],
     },
 ]
+
+
+_INTEGRATION_FIXTURES = {"client", "make_user", "session_factory", "make_run"}
+
+
+def pytest_collection_modifyitems(config, items):
+    """Tag every test as `unit` or `integration` so each suite can run alone.
+
+    Tests under tests/integration/ (or that use the HTTP client / database
+    fixtures) are integration tests; everything else is a unit test.
+    """
+    for item in items:
+        if item.get_closest_marker("unit") or item.get_closest_marker("integration"):
+            continue
+        in_integration_dir = "integration" in item.path.parts
+        uses_stack = bool(_INTEGRATION_FIXTURES.intersection(getattr(item, "fixturenames", ())))
+        item.add_marker(pytest.mark.integration if in_integration_dir or uses_stack else pytest.mark.unit)
 
 
 @pytest.fixture(autouse=True)

@@ -2,7 +2,6 @@
 
 import os
 
-
 INSECURE_SECRET_VALUES = {"", "dev-only-change-me", "change-me"}
 
 

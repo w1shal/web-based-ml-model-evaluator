@@ -9,7 +9,7 @@ from .config import cors_origins, validate_production_config
 from .db import engine
 from .middleware import SecurityMiddleware
 from .models import Base
-from .routers import auth, history, reports, evaluations
+from .routers import auth, evaluations, history, reports
 
 
 @asynccontextmanager

@@ -1,9 +1,9 @@
 """Concurrency and result-persistence tests for evaluation requests."""
-import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
 import pandas as pd
+
 from app.ml.gate import EvaluationGate, GateTimeout
 from app.services import dataset_store, evaluation_service
 

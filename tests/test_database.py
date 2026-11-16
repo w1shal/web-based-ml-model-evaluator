@@ -1,8 +1,8 @@
 
 from sqlalchemy import inspect
 
+from backend.app import models  # noqa: F401  (registers tables on Base.metadata)
 from backend.app.database import Base, engine
-from backend.app import models
 
 
 def test_database_tables_created():

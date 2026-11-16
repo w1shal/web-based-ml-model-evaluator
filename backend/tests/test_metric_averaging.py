@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.metrics import f1_score
+
 from app.ml.metrics import classification_metrics
+
 
 def test_binary_metrics_use_binary_average():
     truth = np.array([0, 0, 0, 1, 1])

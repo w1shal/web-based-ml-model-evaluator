@@ -1,6 +1,7 @@
 from app.ml.algorithms import BUILTIN_IDS
 from app.ml.registry import get_algorithm, list_algorithms
 
+
 def test_five_required_classifiers_are_registered():
     assert tuple(item.id for item in list_algorithms()) == BUILTIN_IDS
     assert set(BUILTIN_IDS) == {"logistic_regression", "decision_tree", "random_forest", "svm", "knn"}
