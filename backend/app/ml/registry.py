@@ -1,7 +1,8 @@
 """Algorithm registry and adapter contract (ENG-01)."""
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from .errors import EvaluationError
 

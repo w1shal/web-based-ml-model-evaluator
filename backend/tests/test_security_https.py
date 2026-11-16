@@ -55,7 +55,7 @@ def test_http_local_development_still_works(client, monkeypatch):
     assert response.status_code == 401
     assert response.headers["x-content-type-options"] == "nosniff"
     assert response.headers["x-frame-options"] == "DENY"
-    assert "strict-origin-when-cross-origin" == response.headers["referrer-policy"]
+    assert response.headers["referrer-policy"] == "strict-origin-when-cross-origin"
     assert "strict-transport-security" not in response.headers
 
 

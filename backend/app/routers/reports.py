@@ -20,7 +20,6 @@ from ..deps import get_optional_user
 from ..models import EvaluationRun, User
 from ..services import history as svc
 
-
 router = APIRouter(prefix="/reports", tags=["reports"])
 METRIC_COLUMNS = (
     ("accuracy", "Accuracy"),

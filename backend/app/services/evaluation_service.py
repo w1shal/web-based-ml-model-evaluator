@@ -1,5 +1,4 @@
 """Evaluation use case: load, execute, persist and retrieve evaluations."""
-from typing import Optional
 
 from sqlalchemy.orm import Session
 
@@ -45,7 +44,7 @@ def _response(run_id: str, status: str, dataset: dict, results: list[dict], prep
 
 
 def execute_evaluation(
-    db: Session, authenticated_user: Optional[User], request: EvaluationRequest
+    db: Session, authenticated_user: User | None, request: EvaluationRequest
 ) -> dict:
     user_id = authenticated_user.user_id if authenticated_user else None
     dataset = dataset_store.load_dataset(request.dataset_id, user_id)
@@ -78,7 +77,7 @@ def execute_evaluation(
                      outcome["results"], outcome["preprocessing"])
 
 
-def get_evaluation(db: Session, run_id: str, user_id: Optional[int]) -> dict:
+def get_evaluation(db: Session, run_id: str, user_id: int | None) -> dict:
     run = db.get(EvaluationRun, run_id)
     if run is None:
         raise EvaluationError("RUN_NOT_FOUND", "Run not found", 404)

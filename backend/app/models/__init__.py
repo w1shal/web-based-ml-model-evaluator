@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Optional
 
 from sqlalchemy import JSON, DateTime, Float, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -48,7 +47,7 @@ class EvaluationRun(Base):
     __tablename__ = "evaluation_runs"
 
     run_id: Mapped[str] = mapped_column(String(40), primary_key=True)
-    user_id: Mapped[Optional[int]] = mapped_column(
+    user_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.user_id"), nullable=True, index=True
     )
     dataset_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -79,15 +78,15 @@ class AlgorithmResult(Base):
         nullable=False,
     )
     algorithm_name: Mapped[str] = mapped_column(String(50), nullable=False)
-    accuracy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    precision: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    recall: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    f1_score: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    roc_auc: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    confusion_matrix: Mapped[Optional[list]] = mapped_column(
+    accuracy: Mapped[float | None] = mapped_column(Float, nullable=True)
+    precision: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recall: Mapped[float | None] = mapped_column(Float, nullable=True)
+    f1_score: Mapped[float | None] = mapped_column(Float, nullable=True)
+    roc_auc: Mapped[float | None] = mapped_column(Float, nullable=True)
+    confusion_matrix: Mapped[list | None] = mapped_column(
         JSON, nullable=True
     )
-    serialized_metrics: Mapped[Optional[dict]] = mapped_column(
+    serialized_metrics: Mapped[dict | None] = mapped_column(
         JSON, nullable=True
     )
 

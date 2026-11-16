@@ -5,6 +5,7 @@ from app.ml.errors import EvaluationError
 from app.ml.registry import AlgorithmSpec, register_algorithm, unregister_algorithm
 from app.ml.selection import resolve_selection
 
+
 def test_selection_preserves_order_and_removes_duplicates():
     for name in ("one_algo", "two_algo"):
         register_algorithm(AlgorithmSpec(name, name, lambda seed, rows: DummyClassifier()))

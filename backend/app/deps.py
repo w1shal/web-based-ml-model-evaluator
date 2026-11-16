@@ -2,14 +2,13 @@
 """Shared authentication dependencies for protected API routes."""
 
 import jwt
-from fastapi import Depends, HTTPException, Header
+from fastapi import Depends, Header, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from .db import get_db
 from .models import RevokedToken, User
 from .security import decode_access_token
-
 
 bearer = HTTPBearer(auto_error=False)
 

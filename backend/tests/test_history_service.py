@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from app.models import EvaluationRun, User
 from app.services.history import list_runs, persist_completed_evaluation
 
-
 RESULTS = [
     {
         "algorithm": "random_forest",

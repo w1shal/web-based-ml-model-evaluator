@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
+
 from app.ml.metrics import confusion_matrix_rows
 
 

@@ -1,4 +1,12 @@
-name: CI
+name: CI Pipeline
+
+# Stages:
+#   1. Lint ............ backend (ruff) + frontend (oxlint)       -> lint report + score
+#   2. Test ............ backend unit + integration (matrix), frontend vitest
+#   3. Coverage ........ combined backend coverage gate (>= 90%)   -> coverage report + score
+#   4. Build ........... Docker image build + container smoke test
+#   5. Summary ......... one overview table of every stage
+# Every stage writes its report to the run's Summary page ($GITHUB_STEP_SUMMARY).
 
 on:
   push:
@@ -7,73 +15,367 @@ on:
       - "chore/**"
       - "feature/**"
       - "fix/**"
+      - "test/**"
+      - "ci/**"
   pull_request:
     branches:
       - main
-      - "feature/**"
-      - "fix/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHON_VERSION: "3.11"
+  NODE_VERSION: "22"
+  RUFF_VERSION: "0.17.5"
+  COVERAGE_THRESHOLD: "90"
+  FORCE_COLOR: "1"
+
 jobs:
-  repository-check:
-    name: Validate repository files
+  # ------------------------------------------------------------------ stage 1
+  lint-backend:
+    name: "Lint · backend (ruff)"
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install ruff
+        run: python -m pip install "ruff==${RUFF_VERSION}"
 
       - name: Verify required project files
         run: |
-          test -f README.md
-          test -d docs
-          test -f requirements.txt
-          test -f pyproject.toml
-          echo "Repository structure check passed."
+          for path in README.md docs requirements.txt pyproject.toml Dockerfile; do
+            test -e "$path" || { echo "::error::Missing $path"; exit 1; }
+          done
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Run ruff and collect report
+        run: |
+          ruff check backend tests .github/scripts --output-format=json --exit-zero > ruff-report.json
+          echo "::group::ruff statistics"
+          ruff check backend tests .github/scripts --statistics --exit-zero
+          echo "::endgroup::"
+
+      - name: Publish lint report to summary
+        if: always()
+        run: |
+          python .github/scripts/ci_summary.py ruff ruff-report.json backend/app backend/tests tests .github/scripts \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce lint (inline PR annotations)
+        run: ruff check backend tests .github/scripts --output-format=github
+
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          python-version: "3.10"
+          name: lint-backend-report
+          path: ruff-report.json
+
+  lint-frontend:
+    name: "Lint · frontend (oxlint + tsc)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run oxlint and collect report
+        run: npx oxlint --format=json > oxlint-report.json || true
+
+      - name: Publish lint report to summary
+        if: always()
+        run: python3 ../.github/scripts/ci_summary.py oxlint oxlint-report.json | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce lint (inline PR annotations)
+        run: npx oxlint --format=github
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: lint-frontend-report
+          path: frontend/oxlint-report.json
+
+  # ------------------------------------------------------------------ stage 2
+  test-backend:
+    name: "Test · backend ${{ matrix.suite }}"
+    needs: lint-backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [unit, integration]
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      COVERAGE_FILE: .coverage.${{ matrix.suite }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
           cache-dependency-path: requirements.txt
 
       - name: Install dependencies
+        run: python -m pip install -r ../requirements.txt
+
+      - name: Run ${{ matrix.suite }} tests
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install -r requirements.txt
+          python -m pytest -m "${{ matrix.suite }} and not performance" \
+            --cov --cov-report= --cov-fail-under=0 \
+            --junitxml=junit-${{ matrix.suite }}.xml \
+            -o junit_family=xunit2 -q
 
-      - name: Run backend tests with auth coverage gate
-        working-directory: backend
+      - name: Publish test report to summary
+        if: always()
         run: |
-          python -m pytest -q -m "not performance" \
-            --cov=app.routers.auth \
-            --cov-report=term-missing \
-            --cov-fail-under=80
+          python ../.github/scripts/ci_summary.py junit "Backend ${{ matrix.suite }} tests" junit-${{ matrix.suite }}.xml \
+            | tee -a "$GITHUB_STEP_SUMMARY"
 
-  frontend-check:
-    name: Build and test frontend
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          node-version: 22
+          name: backend-${{ matrix.suite }}-results
+          include-hidden-files: true
+          path: |
+            backend/junit-${{ matrix.suite }}.xml
+            backend/.coverage.${{ matrix.suite }}
+
+  legacy-smoke:
+    name: "Test · legacy root smoke tests"
+    needs: lint-backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - run: python -m pip install -r requirements.txt
+      - name: Run root smoke tests
+        run: python -m pytest tests -q --junitxml=junit-legacy.xml
+      - name: Publish test report to summary
+        if: always()
+        run: python .github/scripts/ci_summary.py junit "Legacy root smoke tests" junit-legacy.xml >> "$GITHUB_STEP_SUMMARY"
+
+  test-frontend:
+    name: "Test · frontend (vitest + coverage)"
+    needs: lint-frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install frontend dependencies
-        working-directory: frontend
+      - name: Install dependencies
         run: npm ci
 
-      - name: Build frontend
-        working-directory: frontend
-        run: npm run build
+      - name: Run tests with coverage (thresholds in vite.config.ts)
+        run: >
+          npx vitest run --coverage
+          --reporter=default --reporter=junit
+          --outputFile.junit=junit-frontend.xml
 
-      - name: Run frontend tests
-        working-directory: frontend
-        run: npm test
+      - name: Publish test and coverage report to summary
+        if: always()
+        run: |
+          python3 ../.github/scripts/ci_summary.py junit "Frontend tests" junit-frontend.xml | tee -a "$GITHUB_STEP_SUMMARY"
+          if [ -f coverage/coverage-summary.json ]; then
+            python3 ../.github/scripts/ci_summary.py vitest-coverage coverage/coverage-summary.json \
+              | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-coverage
+          path: |
+            frontend/coverage/
+            frontend/junit-frontend.xml
+
+  # ------------------------------------------------------------------ stage 3
+  coverage-backend:
+    name: "Coverage · backend gate"
+    needs: test-backend
+    if: always() && needs.test-backend.result != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install coverage
+        run: python -m pip install "coverage[toml]>=7.4"
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: backend-*-results
+          path: backend
+          merge-multiple: true
+
+      - name: Combine unit + integration coverage
+        run: |
+          ls -la .coverage.* junit-*.xml
+          python -m coverage combine .coverage.unit .coverage.integration
+          python -m coverage json -o coverage.json
+          python -m coverage xml -o coverage.xml
+          python -m coverage html -d htmlcov
+          python -m coverage report --format=markdown > coverage-report.md
+
+      - name: Publish coverage report to summary
+        if: always()
+        run: |
+          python ../.github/scripts/ci_summary.py coverage coverage.json coverage-report.md "$COVERAGE_THRESHOLD" \
+            | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Enforce coverage threshold (${{ env.COVERAGE_THRESHOLD }}%)
+        run: python -m coverage report --fail-under="$COVERAGE_THRESHOLD" --skip-covered
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: backend-coverage
+          path: |
+            backend/coverage.xml
+            backend/coverage.json
+            backend/htmlcov/
+
+  # ------------------------------------------------------------------ stage 4
+  docker:
+    name: "Build · Docker image + smoke test"
+    needs: [coverage-backend, legacy-smoke, test-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t ml-evaluator:ci .
+
+      - name: Start container and probe the API
+        run: |
+          docker run -d --name api -p 8000:8000 \
+            -e JWT_SECRET="ci-only-$(openssl rand -hex 24)" \
+            -e DATABASE_URL="sqlite:////data/app.db" \
+            ml-evaluator:ci
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/algorithms > algorithms.json; then
+              echo "API is up after $attempt attempt(s)"; cat algorithms.json; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::API did not become healthy"; docker logs api; exit 1
+
+      - name: Publish build result to summary
+        if: always()
+        run: |
+          {
+            echo "## 🐳 Docker build"
+            echo
+            echo "| Image | Size | Smoke test |"
+            echo "|---|---:|---|"
+            size=$(docker image inspect ml-evaluator:ci --format '{{.Size}}' 2>/dev/null | awk '{printf "%.0f MB", $1/1024/1024}')
+            if [ -s algorithms.json ]; then probe="✅ \`GET /algorithms\` returned 200"; else probe="❌ API did not respond"; fi
+            echo "| \`ml-evaluator:ci\` | ${size:-n/a} | $probe |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f api || true
+
+  # ------------------------------------------------------------------ stage 5
+  summary:
+    name: "Pipeline summary"
+    needs: [lint-backend, lint-frontend, test-backend, legacy-smoke, test-frontend, coverage-backend, docker]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: reports
+        continue-on-error: true
+
+      - name: Write pipeline overview
+        env:
+          R_LINT_BE: ${{ needs.lint-backend.result }}
+          R_LINT_FE: ${{ needs.lint-frontend.result }}
+          R_TEST_BE: ${{ needs.test-backend.result }}
+          R_LEGACY: ${{ needs.legacy-smoke.result }}
+          R_TEST_FE: ${{ needs.test-frontend.result }}
+          R_COV: ${{ needs.coverage-backend.result }}
+          R_DOCKER: ${{ needs.docker.result }}
+        run: |
+          icon() { case "$1" in success) echo "✅ success";; failure) echo "❌ failure";; skipped) echo "⏭️ skipped";; *) echo "⚠️ $1";; esac; }
+          pct() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(sys.argv[2].format(d))" "$@" 2>/dev/null || echo "n/a"; }
+          count() { python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print(len(d if isinstance(d,list) else d.get('diagnostics',[])))" "$1" 2>/dev/null || echo "n/a"; }
+
+          be_cov=$(pct reports/backend-coverage/coverage.json '{0[totals][percent_covered]:.2f}%')
+          fe_cov=$(pct reports/frontend-coverage/coverage/coverage-summary.json '{0[total][lines][pct]:.2f}% lines')
+          be_lint=$(count reports/lint-backend-report/ruff-report.json)
+          fe_lint=$(count reports/lint-frontend-report/oxlint-report.json)
+
+          {
+            echo "# 🚦 Pipeline overview"
+            echo
+            echo "| Stage | Job | Result | Key metric |"
+            echo "|---|---|---|---|"
+            echo "| 1 · Lint | Backend (ruff) | $(icon "$R_LINT_BE") | $be_lint issue(s) |"
+            echo "| 1 · Lint | Frontend (oxlint + tsc) | $(icon "$R_LINT_FE") | $fe_lint diagnostic(s) |"
+            echo "| 2 · Test | Backend unit + integration | $(icon "$R_TEST_BE") | see per-suite reports |"
+            echo "| 2 · Test | Legacy root smoke tests | $(icon "$R_LEGACY") | |"
+            echo "| 2 · Test | Frontend (vitest) | $(icon "$R_TEST_FE") | coverage $fe_cov |"
+            echo "| 3 · Coverage | Backend gate (≥ ${COVERAGE_THRESHOLD}%) | $(icon "$R_COV") | coverage $be_cov |"
+            echo "| 4 · Build | Docker image + smoke test | $(icon "$R_DOCKER") | |"
+            echo
+            echo "Detailed lint, test and coverage reports are in each job's section below; HTML coverage reports are attached as artifacts."
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat "$GITHUB_STEP_SUMMARY"
+
+      - name: Fail if any stage failed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1

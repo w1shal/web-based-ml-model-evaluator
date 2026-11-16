@@ -36,3 +36,4 @@ deploy/certs/
 
 # IDE
 .vscode/
+coverage.xml

@@ -1,0 +1,17 @@
+# Coverage settings for the backend (pytest runs from this directory).
+[run]
+source = app
+branch = True
+
+[report]
+fail_under = 90
+show_missing = True
+exclude_also =
+    if __name__ == .__main__.:
+    raise NotImplementedError
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml

@@ -12,7 +12,6 @@ from app.main import app
 from app.models import Base, RevokedToken
 from app.security import create_access_token, decode_access_token
 
-
 GOOD = {
     "username": "vivek_logout_test",
     "email": "vivek.logout@example.com",
