@@ -58,7 +58,7 @@ describe("UploadPage", () => {
     const user = userEvent.setup();
     render(<UploadPage onUploadSuccess={() => {}} onContinue={() => {}} />);
     const file = new File(["text"], "notes.txt", { type: "text/plain" });
-    await user.upload(screen.getByLabelText("Choose CSV dataset"), file);
+    fireEvent.change(screen.getByLabelText("Choose CSV dataset"), { target: { files: [file] } });
     expect(screen.getByRole("alert")).toHaveTextContent("Unsupported file type");
     expect(apiRequestMock).not.toHaveBeenCalled();
   });
