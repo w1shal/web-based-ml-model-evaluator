@@ -9,7 +9,7 @@ from .config import cors_origins, validate_production_config
 from .db import engine
 from .middleware import SecurityMiddleware
 from .models import Base
-from .routers import auth, evaluations, history, reports
+from .routers import auth, datasets, evaluations, history, reports
 
 
 @asynccontextmanager
@@ -35,6 +35,7 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(datasets.router)
 app.include_router(history.router)
 app.include_router(reports.router)
 app.include_router(evaluations.router)
