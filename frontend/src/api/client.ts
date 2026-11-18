@@ -31,7 +31,7 @@ export async function apiRequest<T>(
     // Storage may be unavailable; guest requests are still allowed.
   }
 
-  const authToken = token ?? storedToken;
+  const authToken = Object.prototype.hasOwnProperty.call(options, "token") ? (token ?? null) : storedToken;
   const requestHeaders = new Headers(headers);
 
   if (
