@@ -44,6 +44,10 @@ export default function ConfigurePage({ dataset, onConfigChange, onContinue, onB
   }
 
   function validateAndContinue() {
+    if (!dataset) {
+      setError("Upload a dataset before validating the configuration.");
+      return;
+    }
     let message = "";
     if (!targetColumn) message = "Choose the target column that the model should predict.";
     else if (featureColumns.length === 0) message = "Select at least one feature column.";
