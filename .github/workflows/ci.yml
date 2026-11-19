@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: CI/CD Pipeline
 
 # Stages:
 #   1. Lint ............ backend (ruff) + frontend (oxlint)       -> lint report + score
@@ -308,6 +308,63 @@ jobs:
           done
           echo "::error::API did not become healthy"; docker logs api; exit 1
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build the web release
+        working-directory: frontend
+        env:
+          VITE_API_BASE_URL: /
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble deployable bundle
+        run: |
+          mkdir -p release/deploy/nginx release/frontend
+          cp -r frontend/dist release/frontend/
+          cp deploy/nginx/nginx.conf release/deploy/nginx/
+          cp deploy/gen-dev-cert.sh release/deploy/
+          cp .env.example release/.env.example
+          cp deploy/RELEASE.md release/README.md
+          cp deploy/compose.release.yml release/compose.yml
+          docker tag ml-evaluator:ci "ml-evaluator:$GITHUB_SHA"
+          docker save "ml-evaluator:$GITHUB_SHA" | gzip -1 > release/api-image.tar.gz
+          echo "$GITHUB_SHA" > release/REVISION
+          tar -czf evaluator-release.tar.gz -C release .
+
+      - name: Deploy and verify the release on the runner
+        run: |
+          mkdir staging
+          tar -xzf evaluator-release.tar.gz -C staging
+          cd staging
+          gzip -dc api-image.tar.gz | docker load
+          cp .env.example .env
+          sed -i "s/^JWT_SECRET=.*/JWT_SECRET=$(openssl rand -hex 32)/" .env
+          echo "API_TAG=$(cat REVISION)" >> .env
+          sh deploy/gen-dev-cert.sh
+          docker compose up -d
+          curl --retry 20 --retry-delay 2 --retry-all-errors --cacert deploy/certs/fullchain.pem -fsS https://localhost/ -o index.html
+          grep -q 'id="root"' index.html
+          curl --cacert deploy/certs/fullchain.pem -fsS https://localhost/algorithms | jq -e '.items | length == 5'
+          curl --cacert deploy/certs/fullchain.pem -fsS https://localhost/openapi.json | jq -e '.paths["/evaluations"].post != null'
+
+      - name: Stop staging services
+        if: always() && hashFiles('staging/.env') != ''
+        working-directory: staging
+        run: docker compose down -v
+
+      - name: Deliver verified release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: evaluator-release-${{ github.sha }}
+          path: evaluator-release.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Publish build result to summary
         if: always()
         run: |
@@ -337,6 +394,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          pattern: "!evaluator-release-*"
           path: reports
         continue-on-error: true
 
