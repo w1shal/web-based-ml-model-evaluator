@@ -1,0 +1,23 @@
+services:
+  api:
+    image: ml-evaluator:${API_TAG:?Set API_TAG to the value in REVISION}
+    env_file: .env
+    environment:
+      DATASET_DIR: /data/uploads
+    volumes:
+      - api-data:/data
+    restart: unless-stopped
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - api
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/certs:/etc/nginx/certs:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    restart: unless-stopped
+volumes:
+  api-data:
