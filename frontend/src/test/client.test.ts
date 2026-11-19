@@ -61,6 +61,13 @@ describe("api/client apiRequest", () => {
     expect(lastCall().headers.has("Authorization")).toBe(false);
   });
 
+  it("does not reuse a stored token when the caller explicitly marks a request as guest", async () => {
+    fetchMock.mockImplementation(async () => Response.json({}));
+    localStorage.setItem("authToken", "old-session-token");
+    await apiRequest("datasets/upload", { method: "POST", body: new FormData(), token: null });
+    expect(lastCall().headers.has("Authorization")).toBe(false);
+  });
+
   it("still works when localStorage is unavailable", async () => {
     fetchMock.mockResolvedValue(Response.json({ ok: 1 }));
     vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
