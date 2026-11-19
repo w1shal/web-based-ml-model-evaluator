@@ -14,7 +14,6 @@ from sklearn.tree import DecisionTreeClassifier
 
 from app.ml.algorithms import BUILTIN_IDS
 from app.ml.evaluator import EvaluationConfig, run_evaluation
-from app.ml.metrics import ROC_AUC_NOT_APPLICABLE
 
 TOLERANCE = 1e-6
 REFERENCE_MODELS = {
@@ -73,15 +72,19 @@ def test_binary_metrics_confusion_and_auc_match_sklearn(algorithm):
 def test_multiclass_metrics_match_weighted_sklearn_reference(algorithm):
     frame = iris_frame()
     result = run_all(frame, "species")[algorithm]
-    y_test, prediction, _, _ = reference(frame, "species", algorithm)
+    y_test, prediction, model, x_test = reference(frame, "species", algorithm)
     assert result["accuracy"] == pytest.approx(accuracy_score(y_test, prediction), abs=TOLERANCE)
     assert result["precision"] == pytest.approx(precision_score(y_test, prediction, average="weighted", zero_division=0), abs=TOLERANCE)
     assert result["recall"] == pytest.approx(recall_score(y_test, prediction, average="weighted", zero_division=0), abs=TOLERANCE)
     assert result["f1_score"] == pytest.approx(f1_score(y_test, prediction, average="weighted", zero_division=0), abs=TOLERANCE)
     assert result["confusion_matrix"] == confusion_matrix(y_test, prediction).tolist()
     assert result["classes"] == [0, 1, 2]
-    assert result["roc_auc"] is None and result["roc_auc_applicable"] is False
-    assert result["roc_auc_note"] == ROC_AUC_NOT_APPLICABLE
+    scores = model.decision_function(x_test) if algorithm == "svm" else model.predict_proba(x_test)
+    indicator = np.asarray(y_test)[:, None] == model.classes_
+    expected_auc = roc_auc_score(indicator, scores, average="macro")
+    assert result["roc_auc"] == pytest.approx(expected_auc, abs=TOLERANCE)
+    assert result["roc_auc_applicable"] is True
+    assert result["roc_auc_note"] is None
 
 
 def test_imbalanced_three_class_data_uses_weighted_not_macro_average():
