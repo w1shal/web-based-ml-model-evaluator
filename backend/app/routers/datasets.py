@@ -6,8 +6,10 @@ with the column names, a preview of the first rows and any data-quality
 warnings.
 """
 
+import csv
 import json
-from io import BytesIO
+from io import BytesIO, TextIOWrapper
+from pathlib import PureWindowsPath
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -23,6 +25,9 @@ router = APIRouter(
 
 # Number of rows returned in the upload preview.
 PREVIEW_ROWS = 5
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+MAX_COLUMNS = 1024
+MAX_LINE_BYTES = 128 * 1024
 
 # Rejected encodings/parse failures all surface as a 400 with this message.
 PARSE_ERROR = "Unable to parse the uploaded CSV file."
@@ -37,6 +42,21 @@ def _parse_csv(content: bytes) -> pd.DataFrame:
 
     if not content.strip():
         raise ValueError("Uploaded CSV file is empty.")
+
+    if b"\x00" in content or content.startswith((b"%PDF-", b"PK\x03\x04", b"\x89PNG")):
+        raise HTTPException(415, "Expected a UTF-8 CSV file.")
+    if any(len(line) > MAX_LINE_BYTES for line in BytesIO(content)):
+        raise ValueError("CSV line exceeds 128 KiB.")
+
+    try:
+        with TextIOWrapper(BytesIO(content), encoding="utf-8-sig", newline="") as stream:
+            for row in csv.reader(stream, strict=True):
+                if len(row) > MAX_COLUMNS:
+                    raise ValueError("CSV exceeds 1024 columns.")
+    except UnicodeDecodeError as exc:
+        raise HTTPException(415, "Expected a UTF-8 CSV file.") from exc
+    except csv.Error as exc:
+        raise ValueError(PARSE_ERROR) from exc
 
     try:
         dataframe = pd.read_csv(BytesIO(content), encoding="utf-8-sig")
@@ -85,8 +105,15 @@ async def upload_dataset(
 ):
     """Accept a CSV upload and return dataset metadata plus a preview."""
 
-    content = await file.read()
-    await file.close()
+    try:
+        name = PureWindowsPath(file.filename or "").name
+        if not name.lower().endswith(".csv") or not name.isprintable():
+            raise HTTPException(415, "Choose a file with a .csv extension.")
+        content = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(content) > MAX_UPLOAD_BYTES:
+            raise HTTPException(413, "CSV exceeds the 10 MiB limit.")
+    finally:
+        await file.close()
 
     try:
         dataframe = _parse_csv(content)
@@ -95,7 +122,7 @@ async def upload_dataset(
 
     dataset_id = store_dataset(
         content=content,
-        name=file.filename or "uploaded.csv",
+        name=name,
         owner_id=user.user_id if user else None,
     )
 

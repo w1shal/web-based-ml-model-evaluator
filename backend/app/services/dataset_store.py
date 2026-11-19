@@ -48,9 +48,11 @@ def load_dataset(dataset_id: str, requester_id: int | None) -> LoadedDataset:
     if not csv_path.is_file():
         raise not_found
     try:
-        meta = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.is_file() else {}
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
     except (ValueError, OSError):
-        meta = {}
+        raise not_found from None
+    if not isinstance(meta, dict) or "owner_id" not in meta:
+        raise not_found
     owner = meta.get("owner_id")
     if owner is not None and owner != requester_id:
         raise not_found

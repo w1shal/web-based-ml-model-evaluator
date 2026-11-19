@@ -174,3 +174,29 @@ def test_missing_file_returns_400(client):
     response = client.post("/datasets/upload")
 
     assert response.status_code == 400
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("name,content,status", [
+    ("wrong.txt", b"a,b\n1,2", 415),
+    ("binary.csv", b"a,b\n1,\x00", 415),
+    ("document.csv", b"%PDF-1.7\nexample", 415),
+    ("oversize.csv", b"x" * (10 * 1024 * 1024 + 1), 413),
+    ("wide.csv", b"a," * 1024 + b"b\n", 400),
+    ("long.csv", b"a,b\n1," + b"x" * 131072, 400),
+], ids=["extension", "binary", "document", "size", "width", "line"])
+def test_rejected_upload_leaves_no_dataset(client, dataset_dir, name, content, status):
+    assert upload_csv(client, content, name).status_code == status
+    assert list(dataset_dir.iterdir()) == []
+
+
+@pytest.mark.integration
+def test_error_correlation_and_log_privacy(client, caplog):
+    import logging
+
+    with caplog.at_level(logging.INFO, logger="app.requests"):
+        response = upload_csv(client, b"private-dataset-sentinel", "wrong.txt")
+    error = response.json()["error"]
+    assert error["request_id"] == response.headers["X-Request-ID"]
+    assert error["request_id"] in caplog.text
+    assert "private-dataset-sentinel" not in caplog.text

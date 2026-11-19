@@ -155,11 +155,14 @@ def test_load_dataset_hides_other_owners_data(dataset_dir):
 def test_load_dataset_with_corrupt_or_missing_metadata(dataset_dir):
     dataset_id = dataset_store.store_dataset(b"a\n1\n", "x.csv", owner_id=1)
     (dataset_dir / f"{dataset_id}.meta.json").write_text("{not json", encoding="utf-8")
-    loaded = dataset_store.load_dataset(dataset_id, None)
-    assert loaded.name == f"{dataset_id}.csv"  # falls back to a public, unnamed dataset
+    with pytest.raises(EvaluationError) as error:
+        dataset_store.load_dataset(dataset_id, None)
+    assert error.value.status_code == 404
 
     (dataset_dir / f"{dataset_id}.meta.json").unlink()
-    assert dataset_store.load_dataset(dataset_id, 99).name == f"{dataset_id}.csv"
+    with pytest.raises(EvaluationError) as error:
+        dataset_store.load_dataset(dataset_id, 99)
+    assert error.value.status_code == 404
 
 
 def test_load_dataset_rejects_invalid_csv(dataset_dir):

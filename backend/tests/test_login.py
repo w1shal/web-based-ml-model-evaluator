@@ -127,7 +127,9 @@ def test_wrong_password_and_unknown_user_have_same_error(client):
 
     assert wrong_password.status_code == 401
     assert unknown_user.status_code == 401
-    assert wrong_password.json() == unknown_user.json()
+    first, second = wrong_password.json(), unknown_user.json()
+    assert first["error"].pop("request_id") != second["error"].pop("request_id")
+    assert first == second
     assert wrong_password.json()["detail"] == "Invalid credentials"
 
 
