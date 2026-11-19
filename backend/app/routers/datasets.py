@@ -50,9 +50,18 @@ def _parse_csv(content: bytes) -> pd.DataFrame:
 
     try:
         with TextIOWrapper(BytesIO(content), encoding="utf-8-sig", newline="") as stream:
+            header = None
             for row in csv.reader(stream, strict=True):
+                if not row:
+                    continue
                 if len(row) > MAX_COLUMNS:
                     raise ValueError("CSV exceeds 1024 columns.")
+                if header is None:
+                    header = row
+                    if len(set(header)) != len(header):
+                        raise ValueError("CSV column names must be unique.")
+                elif len(row) != len(header):
+                    raise ValueError("CSV rows must match the number of columns in the header.")
     except UnicodeDecodeError as exc:
         raise HTTPException(415, "Expected a UTF-8 CSV file.") from exc
     except csv.Error as exc:

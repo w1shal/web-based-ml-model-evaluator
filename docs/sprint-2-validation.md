@@ -18,6 +18,17 @@ The CI workflow runs the backend test suite, frontend TypeScript/Vite build, and
 
 ## Cross-browser check record
 
+Automated desktop-browser runs on Windows, 19 November 2026, used the real local API and SQLite. Each run signed in to a fresh test account, checked the invalid-extension message, uploaded a synthetic three-class CSV, selected its target, validated the configuration, trained logistic regression, sorted results, opened the confusion-matrix section, downloaded CSV and PDF, and reopened the saved evaluation from history. The checks verified the CSV contained the algorithm identifier and the PDF had a PDF file signature.
+
+| Browser | Viewport | Workflow result |
+|---|---|---|
+| Google Chrome 157.0.8103.79 | 1366 × 900 | Passed |
+| Mozilla Firefox 159.0 (Playwright build) | 1366 × 900 | Passed |
+| Microsoft Edge 157.0.4341.60 | 1366 × 900 | Passed |
+| Google Chrome 157.0.8103.79 | 768 × 1024 | Passed |
+
+The tablet run used a resized desktop browser. The second supported browser version, physical-device behavior, contrast and human keyboard review remain open.
+
 Complete this table against the running application before marking the manual cross-browser check complete. Record the browser version and viewport used.
 
 | Environment | Browser/version | Viewport | Status | Notes |

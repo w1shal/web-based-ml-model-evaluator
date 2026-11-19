@@ -2,7 +2,7 @@
 
 Windows local run, 19 November 2026.
 
-Backend application: 202/206 (98.06%).
+Backend application: 209/214 (97.66%).
 
 Frontend measured source: 391/479 (81.62%).
 

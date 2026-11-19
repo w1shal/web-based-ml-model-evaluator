@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="850" height="520" viewBox="0 0 850 520" role="img" aria-labelledby="title desc">
+  <title id="title">Model evaluator use cases</title>
+  <desc id="desc">Any visitor can upload, configure, evaluate, inspect and export results. Registered users inherit these capabilities and can sign in, reopen history and delete their runs.</desc>
+  <rect width="850" height="520" fill="white"/>
+  <g fill="none" stroke="#253d50" stroke-width="2">
+    <rect x="255" y="15" width="555" height="485" rx="8"/>
+    <circle cx="115" cy="127" r="12"/><path d="M115 139v36m-27-24h54m-27 24-21 24m21-24 21 24"/>
+    <circle cx="115" cy="347" r="12"/><path d="M115 359v36m-27-24h54m-27 24-21 24m21-24 21 24"/>
+    <path d="M115 333v-88"/><path fill="white" d="m115 231-9 16h18z"/>
+    <path d="M143 151 370 83m-227 68 227-18m-227 18 227 32m-227-32 227 82m-227-82 227 132"/>
+    <path d="m143 371 227-16m-227 16 227 34m-227-34 227 84"/>
+  </g>
+  <g fill="#edf4f6" stroke="#253d50" stroke-width="1.6">
+    <ellipse cx="538" cy="83" rx="168" ry="20"/><ellipse cx="538" cy="133" rx="168" ry="20"/>
+    <ellipse cx="538" cy="183" rx="168" ry="20"/><ellipse cx="538" cy="233" rx="168" ry="20"/>
+    <ellipse cx="538" cy="283" rx="168" ry="20"/><ellipse cx="538" cy="355" rx="168" ry="20"/>
+    <ellipse cx="538" cy="405" rx="168" ry="20"/><ellipse cx="538" cy="455" rx="168" ry="20"/>
+  </g>
+  <g fill="#142d40" font-family="Arial,sans-serif" font-size="16" text-anchor="middle">
+    <text x="538" y="46" font-weight="bold">Web-based ML model evaluator</text>
+    <text x="115" y="221">Visitor</text><text x="115" y="445">Registered user</text>
+    <text x="538" y="89">Upload and preview CSV</text><text x="538" y="139">Configure features, target and models</text>
+    <text x="538" y="189">Run evaluation</text><text x="538" y="239">Compare model results</text>
+    <text x="538" y="289">Export CSV or PDF report</text><text x="538" y="361">Sign in or sign out</text>
+    <text x="538" y="411">Reopen a saved evaluation</text><text x="538" y="461">Delete an owned evaluation</text>
+  </g>
+</svg>
