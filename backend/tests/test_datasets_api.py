@@ -184,7 +184,10 @@ def test_missing_file_returns_400(client):
     ("oversize.csv", b"x" * (10 * 1024 * 1024 + 1), 413),
     ("wide.csv", b"a," * 1024 + b"b\n", 400),
     ("long.csv", b"a,b\n1," + b"x" * 131072, 400),
-], ids=["extension", "binary", "document", "size", "width", "line"])
+    ("duplicate.csv", b"x,x\n1,2", 400),
+    ("short.csv", b"a,b\n1", 400),
+    ("extra.csv", b"a,b\n1,2,3", 400),
+], ids=["extension", "binary", "document", "size", "width", "line", "duplicate-header", "short-row", "extra-field"])
 def test_rejected_upload_leaves_no_dataset(client, dataset_dir, name, content, status):
     assert upload_csv(client, content, name).status_code == status
     assert list(dataset_dir.iterdir()) == []
@@ -200,3 +203,12 @@ def test_error_correlation_and_log_privacy(client, caplog):
     assert error["request_id"] == response.headers["X-Request-ID"]
     assert error["request_id"] in caplog.text
     assert "private-dataset-sentinel" not in caplog.text
+
+
+@pytest.mark.integration
+def test_exact_upload_limit_is_accepted(client, dataset_dir):
+    # Each data row is exactly 64 KiB, including the line ending.
+    row = b"1," + b"x" * (65536 - 3) + b"\n"
+    content = b"a,b\n" + row * 159 + row[:-5] + b"\n"
+    assert len(content) == 10 * 1024 * 1024
+    assert upload_csv(client, content).status_code == 200

@@ -2,7 +2,7 @@
 
 Windows local run, 19 November 2026.
 
-311 backend cases passed, including 125 dedicated unit cases. The remaining cases include API, component, integration and performance checks. Two separate legacy smoke tests passed. All 76 frontend tests passed across 11 files. TypeScript and the Vite production build succeeded.
+315 backend cases passed, including 125 dedicated unit cases. The remaining cases include API, component, integration and performance checks. Two separate legacy smoke tests passed. All 76 frontend tests passed across 11 files. TypeScript and the Vite production build succeeded.
 
 The API integration tests use a test client. The frontend workflow tests simulate responses. Browser, deployment and team acceptance are tracked in the [audit](../deliverables-audit.md).
 
@@ -74,7 +74,11 @@ The API integration tests use a test client. The frontend workflow tests simulat
 - tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[size] — pass
 - tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[width] — pass
 - tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[line] — pass
+- tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[duplicate-header] — pass
+- tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[short-row] — pass
+- tests.test_datasets_api.test_rejected_upload_leaves_no_dataset[extra-field] — pass
 - tests.test_datasets_api.test_error_correlation_and_log_privacy — pass
+- tests.test_datasets_api.test_exact_upload_limit_is_accepted — pass
 - tests.test_evaluation_engine.test_trains_and_evaluates_five_builtin_models — pass
 - tests.test_evaluation_engine.test_one_model_failure_does_not_stop_other_models — pass
 - tests.test_evaluation_engine.test_split_is_reproducible — pass
@@ -192,3 +196,4 @@ The API integration tests use a test client. The frontend workflow tests simulat
 - tests.test_security_https.test_no_plaintext_password_in_db_or_logs — pass
 - tests.test_selection.test_selection_preserves_order_and_removes_duplicates — pass
 - tests.test_selection.test_selection_rejects_empty_unknown_and_more_than_five — pass
+Live-browser validation also passed on Chrome, Firefox, Edge and Chrome at a tablet viewport using the real API, SQLite history and both report downloads. See the [versions and test steps](../sprint-2-validation.md).
