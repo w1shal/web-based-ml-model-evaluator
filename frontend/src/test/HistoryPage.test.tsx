@@ -42,7 +42,7 @@ describe("HistoryPage", () => {
     render(<HistoryPage token="user-token" onOpen={onOpen} onClose={() => {}} />);
 
     expect(await screen.findByRole("heading", { name: "customers.csv" })).toBeInTheDocument();
-    expect(screen.getByText(/91\\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/91\.0%/)).toBeInTheDocument();
     expect(apiRequestMock).toHaveBeenCalledWith("/history?limit=50&offset=0", { token: "user-token" });
 
     await user.click(screen.getByRole("button", { name: "View results" }));

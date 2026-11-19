@@ -38,7 +38,7 @@ describe("UploadPage", () => {
     await user.click(screen.getByRole("button", { name: "Upload and preview" }));
 
     expect(await screen.findByText("ds_upload123")).toBeInTheDocument();
-    expect(screen.getByText("students.csv")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "students.csv" })).toBeInTheDocument();
     expect(screen.getByText("Column 'score' contains 1 missing value(s).")).toBeInTheDocument();
     expect(screen.getByText("21")).toBeInTheDocument();
     expect(onUploadSuccess).toHaveBeenCalledWith({ ...result, name: "students.csv" });
@@ -54,8 +54,7 @@ describe("UploadPage", () => {
     expect(onContinue).toHaveBeenCalledOnce();
   });
 
-  it("rejects non-CSV file names before calling the API", async () => {
-    const user = userEvent.setup();
+  it("rejects non-CSV file names before calling the API", () => {
     render(<UploadPage onUploadSuccess={() => {}} onContinue={() => {}} />);
     const file = new File(["text"], "notes.txt", { type: "text/plain" });
     fireEvent.change(screen.getByLabelText("Choose CSV dataset"), { target: { files: [file] } });

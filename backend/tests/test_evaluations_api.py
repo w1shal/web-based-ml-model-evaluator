@@ -115,6 +115,7 @@ def test_invalid_token_is_rejected(client, dataset_dir):
 
 def test_corrupt_stored_dataset_is_422(client, dataset_dir):
     (dataset_dir / "ds_corrupt.csv").write_bytes(b"")
+    (dataset_dir / "ds_corrupt.meta.json").write_text('{"owner_id": null}', encoding="utf-8")
     response = client.post("/evaluations", json={
         "dataset_id": "ds_corrupt", "target_column": "y",
         "feature_columns": ["a"], "algorithms": ["knn"]

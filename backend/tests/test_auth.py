@@ -61,7 +61,9 @@ def test_invalid_credentials_have_identical_responses(client):  # TC-005
     unknown_user = login(client, identifier="nobody")
 
     assert wrong_password.status_code == unknown_user.status_code == 401
-    assert wrong_password.json() == unknown_user.json()
+    first, second = wrong_password.json(), unknown_user.json()
+    assert first["error"].pop("request_id") != second["error"].pop("request_id")
+    assert first == second
     assert wrong_password.json()["detail"] == "Invalid credentials"
 
 

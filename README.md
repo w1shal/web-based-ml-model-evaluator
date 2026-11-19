@@ -353,88 +353,35 @@ The project requires:
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/<GITHUB-USERNAME>/web-based-ml-model-evaluator.git
+git clone https://github.com/w1shal/web-based-ml-model-evaluator.git
 cd web-based-ml-model-evaluator
 ```
-### Backend Setup
+### Backend setup on Windows
 
-Run the following commands from the repository root.
-
-Create and activate a virtual environment on Windows:
+From the repository root, start the application API in PowerShell. SQLite tables are created at startup. Keep this terminal open. Reuse the same signing secret across restarts to retain existing sessions.
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\python -m pip install -r requirements.txt
+$env:JWT_SECRET = .\.venv\Scripts\python -c "import secrets; print(secrets.token_urlsafe(48))"
+.\.venv\Scripts\python -m uvicorn backend.app.main:app --reload
 ```
 
-Install dependencies:
+Open http://127.0.0.1:8000/docs and check that the dataset and evaluation routes are listed. Start the frontend in a second terminal and open http://localhost:5173.
+
+### Run tests on Windows
 
 ```powershell
-python -m pip install -r requirements.txt
+.\.venv\Scripts\python -m pytest tests -q
+cd backend
+..\.venv\Scripts\python -m pytest -m "not performance" -q
+cd ../frontend
+npm ci
+npm run test:coverage
+npm run build
 ```
 
-Initialize the SQLite database and create the tables:
-
-```powershell
-python -c "from backend.app.database import Base, engine; from backend.app import models; Base.metadata.create_all(bind=engine); print('Database initialized:', list(Base.metadata.tables.keys()))"
-```
-
-Start the FastAPI backend:
-
-```powershell
-python -m uvicorn backend.main:app --reload
-```
-
-Open `http://127.0.0.1:8000/health` in your browser. The expected response is:
-
-```json
-{"status": "healthy"}
-```
-
-Interactive API documentation is available at `http://127.0.0.1:8000/docs`.
-
-
-Run the following commands from the repository root.
-
-Create and activate a virtual environment on Windows:
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-Install dependencies:
-
-```powershell
-python -m pip install -r requirements.txt
-```
-
-Initialize the SQLite database and create the tables:
-
-```powershell
-python -c "from backend.app.database import Base, engine; from backend.app import models; Base.metadata.create_all(bind=engine); print('Database initialized:', list(Base.metadata.tables.keys()))"
-```
-
-Start the FastAPI backend:
-
-```powershell
-python -m uvicorn backend.main:app --reload
-```
-
-Open http://127.0.0.1:8000/health in your browser. The expected response is:
-
-```json
-{"status": "healthy"}
-```
-
-Interactive API documentation is available at http://127.0.0.1:8000/docs.
-### Run Tests
-
-From the repository root, run:
-
-```powershell
-python -m pytest -q
-```
+See the [deliverables audit and test reports](docs/deliverables-audit.md).
 
 ### Frontend Setup
 

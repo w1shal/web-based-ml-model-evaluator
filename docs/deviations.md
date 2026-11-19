@@ -3,6 +3,8 @@
 **Review date:** 2026-10-29
 **Status:** Draft for teammate review
 
+Sprint 2 update: PR #111 delivered the upload, configuration, evaluation, results and history flow. D-01 below records the Sprint 1 demo state. Current test results and outstanding acceptance checks are in [the deliverables audit](deliverables-audit.md).
+
 ## D-01: Evaluation workflow is not yet end-to-end
 
 **Relevant SRS requirement area:** Functional requirements covering dataset upload, evaluation configuration, evaluation execution, and results reporting.
