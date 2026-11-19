@@ -349,7 +349,8 @@ jobs:
           docker compose up -d
           curl --retry 20 --retry-delay 2 --retry-all-errors --cacert deploy/certs/fullchain.pem -fsS https://localhost/ -o index.html
           grep -q 'id="root"' index.html
-          curl --cacert deploy/certs/fullchain.pem -fsS https://localhost/algorithms | jq -e '.items | length == 5'
+          curl --retry 20 --retry-delay 2 --retry-all-errors --cacert deploy/certs/fullchain.pem -fsS https://localhost/algorithms -o algorithms.json
+          jq -e '.items | length == 5' algorithms.json
           curl --cacert deploy/certs/fullchain.pem -fsS https://localhost/openapi.json | jq -e '.paths["/evaluations"].post != null'
 
       - name: Stop staging services
