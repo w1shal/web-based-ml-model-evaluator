@@ -131,10 +131,14 @@ def test_guest_journey_is_not_saved_to_any_history(client, make_user, dataset_di
     response = client.post("/evaluations", json=_body(dataset_id, frame, "species", ["decision_tree", "svm"]))
     assert response.status_code == 200, response.text
     run_id = response.json()["run_id"]
-    assert all(row["roc_auc"] is None for row in response.json()["results"])  # multiclass
+    results = response.json()["results"]
+    assert len(results) == 2
+    assert all(0 <= row["roc_auc"] <= 1 for row in results)
 
     # Guest runs are retrievable and exportable without an account...
-    assert client.get(f"/evaluations/{run_id}").status_code == 200
+    saved = client.get(f"/evaluations/{run_id}")
+    assert saved.status_code == 200
+    assert [row["roc_auc"] for row in saved.json()["results"]] == [row["roc_auc"] for row in results]
     assert client.get(f"/reports/{run_id}/csv").status_code == 200
     assert client.get(f"/reports/{run_id}/pdf").status_code == 200
 

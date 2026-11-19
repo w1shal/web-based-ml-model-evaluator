@@ -16,7 +16,6 @@ from app.ml.errors import EvaluationError
 from app.ml.evaluator import EvaluationConfig, _decision_scores, run_evaluation
 from app.ml.gate import EvaluationGate, GateTimeout
 from app.ml.metrics import (
-    ROC_AUC_NOT_APPLICABLE,
     ROC_AUC_UNAVAILABLE,
     classification_metrics,
     confusion_matrix_rows,
@@ -249,7 +248,7 @@ def test_confusion_matrix_rows_includes_unpredicted_labels():
 
 def test_roc_auc_metrics_branches():
     y = np.array([0, 0, 1, 1])
-    assert roc_auc_metrics(y, None, 3)["roc_auc_note"] == ROC_AUC_NOT_APPLICABLE
+    assert roc_auc_metrics(y, None, 3)["roc_auc_note"] == ROC_AUC_UNAVAILABLE
     assert roc_auc_metrics(y, None, 2)["roc_auc_note"] == ROC_AUC_UNAVAILABLE
     assert roc_auc_metrics(y, np.array([0.1, 0.2, 0.8, 0.9]), 2)["roc_auc"] == pytest.approx(1.0)
     # Mismatched lengths make sklearn raise ValueError, which must be handled.
@@ -337,12 +336,13 @@ def test_run_evaluation_handles_missing_or_broken_scores(temp_algorithm):
         assert result["roc_auc_note"] == ROC_AUC_UNAVAILABLE
 
 
-def test_run_evaluation_multiclass_has_no_roc_auc():
+@pytest.mark.parametrize("algorithm", ["knn", "svm", "logistic_regression", "decision_tree", "random_forest"])
+def test_run_evaluation_multiclass_has_roc_auc(algorithm):
     frame = pd.DataFrame({"x1": np.arange(30, dtype=float), "label": np.repeat([0, 1, 2], 10)})
-    outcome = run_evaluation(frame, config(feature_columns=["x1"], algorithms=["knn"], test_size=0.3))
+    outcome = run_evaluation(frame, config(feature_columns=["x1"], algorithms=[algorithm], test_size=0.3))
     result = outcome["results"][0]
-    assert result["roc_auc"] is None
-    assert result["roc_auc_applicable"] is False
+    assert 0 <= result["roc_auc"] <= 1
+    assert result["roc_auc_applicable"] is True
     assert result["metric_average"] == "weighted"
     assert len(result["confusion_matrix"]) == 3
 

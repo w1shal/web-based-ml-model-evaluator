@@ -11,7 +11,7 @@
 - Two-class targets use binary averaging, treating the second sorted encoded class as positive.
 - Multiclass targets use support-weighted precision, recall and F1.
 - Confusion-matrix rows represent true labels; columns represent predicted labels.
-- ROC-AUC is calculated for binary classification using estimator probabilities or decision scores. Multiclass ROC-AUC is explicitly not applicable.
+- ROC-AUC is calculated for binary classification using estimator probabilities or decision scores. For multiclass runs, ROC-AUC is the unweighted mean of one-vs-rest AUCs from per-class scores. The test split must contain every class. Previously saved runs retain their original metrics.
 - SVM uses its decision function, avoiding the extra cost of probability calibration.
 
 ## Preprocessing

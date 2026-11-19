@@ -27,10 +27,14 @@ class EvaluationConfig:
     random_state: int = RANDOM_STATE
 
 
-def _decision_scores(model, X):
+def _decision_scores(model, X, n_classes=2):
     if hasattr(model, "predict_proba"):
-        return model.predict_proba(X)[:, 1]
+        probabilities = model.predict_proba(X)
+        return probabilities[:, 1] if n_classes == 2 else probabilities
     if hasattr(model, "decision_function"):
+        classifier = model.steps[-1][1] if isinstance(model, Pipeline) else model
+        if n_classes > 2 and getattr(classifier, "decision_function_shape", None) == "ovo":
+            return None
         return model.decision_function(X)
     return None
 
@@ -63,7 +67,7 @@ def run_evaluation(df: pd.DataFrame, cfg: EvaluationConfig) -> dict:
             model.fit(X_train, y_train)
             predicted = model.predict(X_test)
             try:
-                scores = _decision_scores(model, X_test) if n_classes == 2 else None
+                scores = _decision_scores(model, X_test, n_classes)
             except Exception:
                 scores = None
             results.append({
